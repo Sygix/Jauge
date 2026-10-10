@@ -55,13 +55,14 @@ abstract class ProviderWidget(private val provider: Provider) : GlanceAppWidget(
             val connected by store.connected.collectAsState(initialConnected)
             val settings by store.settings.collectAsState(initialSettings)
             val model = WidgetModel(
+                context = context,
                 provider = provider,
                 connected = provider in connected,
                 snapshot = snapshots[provider]?.takeIf { provider in connected },
                 showRemaining = settings.showRemaining,
                 nowMs = System.currentTimeMillis(),
             )
-            GlanceTheme { ProviderContent(model) }
+            WidgetSurface(settings) { ProviderContent(model) }
         }
     }
 }
@@ -75,8 +76,7 @@ internal fun ProviderContent(model: WidgetModel) {
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
-            .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(24.dp)
+            .widgetBackground(LocalWidgetColors.current)
             .clickable(actionStartActivity<MainActivity>())
             .padding(padding),
         contentAlignment = Alignment.Center,
@@ -113,10 +113,10 @@ private fun Compact(model: WidgetModel, inner: DpSize) {
                 Label(model.provider.shortName, size = 11.sp, bold = true, muted = false)
             }
             snapshot.primary?.let {
-                Label(it.label, size = 10.sp)
-                Format.countdown(it.resetsAtMs, model.nowMs)?.let { c -> Label("↻ $c", size = 10.sp) }
+                Label(model.label(it), size = 10.sp)
+                model.resetIn(it)?.let { reset -> Label(reset, size = 10.sp) }
             }
-            snapshot.secondary?.let { Label("${shortLabel(it.kind)} ${Format.percentShort(model.shown(it))}", size = 10.sp, bold = true, muted = false) }
+            snapshot.secondary?.let { Label(model.short(it), size = 10.sp, bold = true, muted = false) }
         }
     }
 }
@@ -146,7 +146,7 @@ private fun Strip(model: WidgetModel, inner: DpSize) {
                 if (index > 0) Spacer(GlanceModifier.height(5.dp))
                 WindowRow(model, window, barWidth, compact = true)
             }
-            if (windows.isEmpty()) snapshot.error?.let { Label(it, size = 11.sp, color = GlanceTheme.colors.error) }
+            if (windows.isEmpty()) snapshot.error?.let { Label(it, size = 11.sp, color = LocalWidgetColors.current.error) }
         }
     }
 }
@@ -168,8 +168,7 @@ private fun Square(model: WidgetModel, inner: DpSize) {
         Spacer(GlanceModifier.defaultWeight())
         footer?.let {
             Label(
-                "${shortLabel(it.kind)} ${Format.percentShort(model.shown(it))}" +
-                    (Format.countdown(it.resetsAtMs, model.nowMs)?.let { c -> " · ↻ $c" } ?: ""),
+                model.short(it) + (model.resetIn(it)?.let { reset -> " · $reset" } ?: ""),
                 size = 10.sp,
             )
         }
@@ -197,7 +196,7 @@ private fun Panel(model: WidgetModel, inner: DpSize) {
                 Spacer(GlanceModifier.width(14.dp))
             }
             Column(modifier = GlanceModifier.width(listWidth)) {
-                if (windows.isEmpty()) snapshot.error?.let { Label(it, size = 12.sp, color = GlanceTheme.colors.error) }
+                if (windows.isEmpty()) snapshot.error?.let { Label(it, size = 12.sp, color = LocalWidgetColors.current.error) }
                 windows.forEachIndexed { index, window ->
                     if (index > 0) Spacer(GlanceModifier.height(7.dp))
                     WindowRow(model, window, listWidth)
@@ -210,13 +209,6 @@ private fun Panel(model: WidgetModel, inner: DpSize) {
         }
         Spacer(GlanceModifier.defaultWeight())
     }
-}
-
-private fun shortLabel(kind: WindowKind): String = when (kind) {
-    WindowKind.SESSION -> "5 h"
-    WindowKind.WEEKLY -> "Sem."
-    WindowKind.WEEKLY_MODEL -> "Modèle"
-    WindowKind.MONTHLY -> "Mois"
 }
 
 class ClaudeWidget : ProviderWidget(Provider.CLAUDE)

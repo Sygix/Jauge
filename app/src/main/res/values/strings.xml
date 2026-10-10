@@ -1,13 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Jauge</string>
-    <string name="login_channel">Connexion</string>
-    <string name="login_notification">Connexion en cours…</string>
-    <string name="widget_overview">Jauge · Vue d\'ensemble</string>
+    <string name="app_name" translatable="false">Jauge</string>
+    <string name="login_channel">Sign-in</string>
+    <string name="login_notification">Signing in…</string>
+    <string name="widget_overview">Jauge · Overview</string>
     <string name="widget_claude">Jauge · Claude</string>
     <string name="widget_codex">Jauge · Codex</string>
     <string name="widget_nous">Jauge · Nous Portal</string>
-    <string name="widget_overview_description">Tous vos abonnements IA d\'un coup d\'œil</string>
-    <string name="widget_provider_description">Session 5 h, semaine et dépassement</string>
-    <string name="widget_nous_description">Crédits mensuels et dépenses</string>
+    <string name="widget_overview_description">All your AI subscriptions at a glance</string>
+    <string name="widget_provider_description">5-hour session, week and overage</string>
+    <string name="widget_nous_description">Monthly credits and spend</string>
+
+    <string name="window_session">5-hour session</string>
+    <string name="window_weekly">Week</string>
+    <string name="window_weekly_model">Week · %1$s</string>
+    <string name="window_monthly">Month</string>
+    <string name="short_session">5h</string>
+    <string name="short_weekly">Wk.</string>
+    <string name="short_model">Model</string>
+    <string name="short_monthly">Mo.</string>
+
+    <string name="spend_overage">Overage</string>
+    <string name="spend_credits">Credits</string>
+    <string name="spend_unlimited">Unlimited credits</string>
+    <string name="spend_period">Spent this period</string>
+    <string name="spend_rolling_week">Spend (7 days)</string>
+    <string name="spend_top_up">Top-up credits</string>
+
+    <string name="time_now">now</string>
+    <string name="time_minutes">%1$d min</string>
+    <string name="time_hours">%1$d h %2$02d</string>
+    <string name="time_days">%1$d d %2$d h</string>
+    <string name="updated_just_now">just now</string>
+    <string name="updated_minutes_ago">%1$d min ago</string>
+    <string name="percent">%1$d%%</string>
+    <string name="percent_short">%1$d%%</string>
+
+    <string name="error_offline">Offline</string>
+    <string name="error_network">Network error</string>
+    <string name="error_rate_limited">Too many requests (429)</string>
+    <string name="error_server">Service unavailable (%1$d)</string>
+    <string name="error_http">HTTP error %1$d</string>
+    <string name="error_relogin">Sign in again</string>
+    <string name="error_depleted">Credits exhausted</string>
+
+    <string name="failure_port_busy">Local port %1$d is unavailable</string>
+    <string name="failure_invalid_state">Invalid OAuth response (state)</string>
+    <string name="failure_missing_code">No authorization code received</string>
+    <string name="failure_code_mismatch">This code does not match this sign-in attempt</string>
+    <string name="failure_expired">The code expired, please try again</string>
+    <string name="failure_denied">Sign-in was denied</string>
+    <string name="failure_http">Error %1$d</string>
+    <string name="failure_http_detail">Error %1$d: %2$s</string>
+
+    <string name="widget_relogin">Sign in</string>
+    <string name="widget_relogin_long">Sign in again</string>
+    <string name="widget_connect">Connect</string>
+    <string name="widget_tap_connect">Tap to connect</string>
+    <string name="widget_tap_connect_all">Tap to connect your accounts</string>
+    <string name="widget_refreshing">Refreshing…</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="reset_in">↻ %1$s</string>
+
+    <string name="success_title">%1$s is connected</string>
+    <string name="success_body">You can go back to Jauge, your widgets will update.</string>
+    <string name="success_button">Back to Jauge</string>
+
+    <string name="action_refresh_all">Refresh all</string>
+    <string name="footer">Jauge %1$s · github.com/Sygix/Jauge</string>
+    <string name="connect">Sign in</string>
+    <string name="connect_device">Sign in (device code)</string>
+    <string name="device_code">Device code</string>
+    <string name="disabled">Disabled</string>
+    <string name="top_up_balance">Top-up balance: %1$s</string>
+    <string name="status_waiting">Waiting for the first refresh</string>
+    <string name="status_relogin">Session expired, please sign in again</string>
+    <string name="status_error">%1$s · data from %2$s</string>
+    <string name="status_updated">Updated %1$s</string>
+    <string name="reconnect">Sign in again</string>
+    <string name="refresh">Refresh</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="remaining_suffix">%1$s left</string>
+    <string name="reset_line">Resets in %1$s · %2$s</string>
+    <string name="describe_claude">Connect your Claude Pro, Max or Team account to track the 5-hour session, the week and overage.</string>
+    <string name="describe_codex">Connect your ChatGPT account to track Codex limits (5 hours, week) and your credits.</string>
+    <string name="describe_nous">Connect your Nous Portal account (Hermes Agent) to track monthly credits and spend.</string>
+    <string name="widgets_title">Widgets</string>
+    <string name="widgets_body">Add a widget and resize it freely: from 1×1 to 4×3, the layout adapts.</string>
+    <string name="widget_pin_overview">Overview</string>
+    <string name="refresh_title">Refresh</string>
+    <string name="refresh_body">How often widgets update in the background. Android may delay it in battery saver.</string>
+    <string name="interval_minutes">%1$d min</string>
+    <string name="interval_hours">%1$d h</string>
+    <string name="show_remaining">Show what is left</string>
+    <string name="show_remaining_body">Gauges show what remains instead of what was used</string>
+    <string name="wifi_only">Wi‑Fi only</string>
+    <string name="wifi_only_body">Only refresh in the background on an unmetered network</string>
+    <string name="appearance_title">Widget appearance</string>
+    <string name="widget_background">Background behind widgets</string>
+    <string name="widget_background_body">When off, gauges sit directly on the wallpaper</string>
+    <string name="text_color">Text color</string>
+    <string name="text_color_themed">Follows the phone theme while the background is shown</string>
+    <string name="text_color_auto">Auto: dark on a light wallpaper, light otherwise</string>
+    <string name="tone_auto">Auto</string>
+    <string name="tone_light">Light</string>
+    <string name="tone_dark">Dark</string>
+
+    <string name="login_title">Sign in to %1$s</string>
+    <string name="login_browser">Authorize Jauge in the browser, the app picks up the sign-in automatically.</string>
+    <string name="login_browser_fallback">If the automatic return fails, enter the code manually.</string>
+    <string name="reopen_page">Reopen page</string>
+    <string name="manual_code">Manual code</string>
+    <string name="cancel">Cancel</string>
+    <string name="requesting_code">Requesting a sign-in code…</string>
+    <string name="finishing">Finishing and reading usage for the first time…</string>
+    <string name="connected_title">%1$s connected</string>
+    <string name="connected_body">Widgets update automatically.</string>
+    <string name="done">Great</string>
+    <string name="failed_title">Sign-in failed</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="manual_title">Claude authorization code</string>
+    <string name="manual_body">Authorize Jauge on claude.ai, copy the code shown, then paste it here.</string>
+    <string name="code">Code</string>
+    <string name="paste">Paste</string>
+    <string name="validate">Confirm</string>
+    <string name="reopen">Reopen</string>
+    <string name="device_codex">Open the OpenAI page, enter this code and confirm. If asked, enable device code sign-in in your ChatGPT security settings.</string>
+    <string name="device_nous">Open the Nous Portal page and confirm this code.</string>
+    <string name="device_waiting">Waiting for confirmation…</string>
+    <string name="copy_and_open">Copy and open</string>
 </resources>

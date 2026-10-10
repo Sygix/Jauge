@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.res.stringResource
+import fr.sygix.jauge.R
 import fr.sygix.jauge.auth.LoginState
 import fr.sygix.jauge.model.Provider
 
@@ -58,55 +60,55 @@ fun LoginDialog(
         LoginState.Idle -> Unit
         is LoginState.WaitingBrowser -> AlertDialog(
             onDismissRequest = {},
-            title = { Text("Connexion à ${state.provider.displayName}") },
+            title = { Text(stringResource(R.string.login_title, state.provider.displayName)) },
             text = {
                 Column {
-                    Waiting("Autorisez Jauge dans le navigateur, l'application récupère la connexion automatiquement.")
+                    Waiting(stringResource(R.string.login_browser))
                     if (state.provider == Provider.CLAUDE) {
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Si le retour automatique échoue, utilisez la saisie manuelle du code.",
+                            stringResource(R.string.login_browser_fallback),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { onOpen(state.url, state.provider) }) { Text("Rouvrir la page") } },
+            confirmButton = { TextButton(onClick = { onOpen(state.url, state.provider) }) { Text(stringResource(R.string.reopen_page)) } },
             dismissButton = {
                 Row {
-                    if (state.provider == Provider.CLAUDE) TextButton(onClick = onManual) { Text("Code manuel") }
-                    TextButton(onClick = onCancel) { Text("Annuler") }
+                    if (state.provider == Provider.CLAUDE) TextButton(onClick = onManual) { Text(stringResource(R.string.manual_code)) }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
                 }
             },
         )
         is LoginState.WaitingManualCode -> ManualCodeDialog(state, onOpen, onSubmitCode, onCancel)
         is LoginState.RequestingDevice -> AlertDialog(
             onDismissRequest = {},
-            title = { Text("Connexion à ${state.provider.displayName}") },
-            text = { Waiting("Demande d'un code de connexion…") },
+            title = { Text(stringResource(R.string.login_title, state.provider.displayName)) },
+            text = { Waiting(stringResource(R.string.requesting_code)) },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = onCancel) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
         )
         is LoginState.WaitingDevice -> DeviceDialog(state, onOpen, onCancel)
         is LoginState.Finishing -> AlertDialog(
             onDismissRequest = {},
-            title = { Text("Connexion à ${state.provider.displayName}") },
-            text = { Waiting("Finalisation et première lecture de l'usage…") },
+            title = { Text(stringResource(R.string.login_title, state.provider.displayName)) },
+            text = { Waiting(stringResource(R.string.finishing)) },
             confirmButton = {},
         )
         is LoginState.Success -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("${state.provider.displayName} connecté") },
-            text = { Text("Les widgets se mettent à jour automatiquement.") },
-            confirmButton = { TextButton(onClick = onDismiss) { Text("Parfait") } },
+            title = { Text(stringResource(R.string.connected_title, state.provider.displayName)) },
+            text = { Text(stringResource(R.string.connected_body)) },
+            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.done)) } },
         )
         is LoginState.Failed -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Connexion impossible") },
-            text = { SelectionContainer { Text(state.message) } },
-            confirmButton = { TextButton(onClick = { onRetry(state.provider) }) { Text("Réessayer") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
+            title = { Text(stringResource(R.string.failed_title)) },
+            text = { SelectionContainer { Text(Texts.failure(LocalContext.current, state.failure)) } },
+            confirmButton = { TextButton(onClick = { onRetry(state.provider) }) { Text(stringResource(R.string.retry)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
         )
     }
 }
@@ -138,29 +140,29 @@ private fun ManualCodeDialog(
     }
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Code d'autorisation Claude") },
+        title = { Text(stringResource(R.string.manual_title)) },
         text = {
             Column {
                 Text(
-                    "Autorisez Jauge sur claude.ai, copiez le code affiché puis collez-le ici.",
+                    stringResource(R.string.manual_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = code,
                     onValueChange = { code = it },
-                    label = { Text("Code") },
+                    label = { Text(stringResource(R.string.code)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextButton(onClick = { clipboardText(context)?.let { code = it.trim() } }) { Text("Coller") }
+                TextButton(onClick = { clipboardText(context)?.let { code = it.trim() } }) { Text(stringResource(R.string.paste)) }
             }
         },
-        confirmButton = { TextButton(onClick = { onSubmit(code) }, enabled = code.isNotBlank()) { Text("Valider") } },
+        confirmButton = { TextButton(onClick = { onSubmit(code) }, enabled = code.isNotBlank()) { Text(stringResource(R.string.validate)) } },
         dismissButton = {
             Row {
-                TextButton(onClick = { onOpen(state.url, state.provider) }) { Text("Rouvrir") }
-                TextButton(onClick = onCancel) { Text("Annuler") }
+                TextButton(onClick = { onOpen(state.url, state.provider) }) { Text(stringResource(R.string.reopen)) }
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
             }
         },
     )
@@ -171,15 +173,11 @@ private fun DeviceDialog(state: LoginState.WaitingDevice, onOpen: (String, Provi
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Connexion à ${state.provider.displayName}") },
+        title = { Text(stringResource(R.string.login_title, state.provider.displayName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    if (state.provider == Provider.CODEX) {
-                        "Ouvrez la page OpenAI, saisissez ce code et validez. Si la page le demande, activez la connexion par code appareil dans les paramètres de sécurité ChatGPT."
-                    } else {
-                        "Ouvrez la page Nous Portal et validez ce code."
-                    },
+                    stringResource(if (state.provider == Provider.CODEX) R.string.device_codex else R.string.device_nous),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
@@ -194,16 +192,16 @@ private fun DeviceDialog(state: LoginState.WaitingDevice, onOpen: (String, Provi
                         )
                     }
                 }
-                Waiting("En attente de validation…")
+                Waiting(stringResource(R.string.device_waiting))
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 copy(context, state.code.userCode)
                 onOpen(state.code.verificationUrl, state.provider)
-            }) { Text("Copier et ouvrir") }
+            }) { Text(stringResource(R.string.copy_and_open)) }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
     )
 }
 

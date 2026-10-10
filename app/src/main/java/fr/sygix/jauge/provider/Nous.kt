@@ -14,6 +14,8 @@ import fr.sygix.jauge.net.HttpException
 import fr.sygix.jauge.net.Jwt
 import fr.sygix.jauge.net.long
 import fr.sygix.jauge.net.str
+import fr.sygix.jauge.model.LoginFailedException
+import fr.sygix.jauge.model.LoginFailure
 import java.io.IOException
 import kotlinx.serialization.json.JsonObject
 
@@ -29,11 +31,11 @@ object NousAuth {
             Http.formBody(mapOf("client_id" to CLIENT_ID, "scope" to SCOPE)),
         )
         return DeviceCode(
-            userCode = json.str("user_code") ?: throw IOException("Code appareil absent"),
+            userCode = json.str("user_code") ?: throw IOException("Missing device code"),
             verificationUrl = json.str("verification_uri_complete") ?: json.str("verification_uri") ?: "$PORTAL/device",
             intervalSeconds = (json.long("interval") ?: 5).toInt().coerceIn(1, 30),
             expiresAtMs = System.currentTimeMillis() + (json.long("expires_in") ?: 900) * 1000,
-            handle = json.str("device_code") ?: throw IOException("device_code absent"),
+            handle = json.str("device_code") ?: throw IOException("Missing device_code"),
         )
     }
 
@@ -47,8 +49,8 @@ object NousAuth {
             return when (e.oauthError) {
                 "authorization_pending" -> DevicePoll.Pending
                 "slow_down" -> DevicePoll.SlowDown
-                "expired_token" -> throw IOException("Code expiré, recommencez")
-                "access_denied" -> throw IOException("Connexion refusée")
+                "expired_token" -> throw LoginFailedException(LoginFailure.Expired)
+                "access_denied" -> throw LoginFailedException(LoginFailure.Denied)
                 else -> throw e
             }
         }
@@ -56,7 +58,7 @@ object NousAuth {
     }
 
     suspend fun refresh(current: Credentials): Credentials {
-        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Jeton de rafraîchissement absent")
+        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Missing refresh token")
         val json = try {
             Http.postJson(
                 "$PORTAL/api/oauth/token",
@@ -64,13 +66,13 @@ object NousAuth {
                 mapOf("x-nous-refresh-token" to refreshToken),
             )
         } catch (e: HttpException) {
-            if (e.code in 400..403) throw AuthExpiredException("Session Nous expirée") else throw e
+            if (e.code in 400..403) throw AuthExpiredException("Nous session expired") else throw e
         }
         return credentials(json, current)
     }
 
     private fun credentials(json: JsonObject, previous: Credentials?): Credentials {
-        val access = json.str("access_token") ?: throw IOException("Réponse sans access_token")
+        val access = json.str("access_token") ?: throw IOException("Response without access_token")
         return Credentials(
             accessToken = access,
             refreshToken = json.str("refresh_token") ?: previous?.refreshToken,

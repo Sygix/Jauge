@@ -8,6 +8,7 @@ package fr.sygix.jauge.provider
 import fr.sygix.jauge.model.Money
 import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.model.Spend
+import fr.sygix.jauge.model.SpendKind
 import fr.sygix.jauge.model.UsageSnapshot
 import fr.sygix.jauge.model.UsageWindow
 import fr.sygix.jauge.model.WindowKind
@@ -47,15 +48,14 @@ object CodexParser {
         }
         val resets = window.long("reset_at")?.times(1000)
             ?: window.long("reset_after_seconds")?.let { nowMs + it * 1000 }
-        val label = if (kind == WindowKind.SESSION) Labels.SESSION else Labels.WEEKLY
-        return UsageWindow(kind, label, used, resets)
+        return UsageWindow(kind, used, resets)
     }
 
     private fun credits(credits: JsonObject?): Spend? {
         credits ?: return null
         if (credits.bool("has_credits") != true) return null
-        if (credits.bool("unlimited") == true) return Spend(label = "Crédits illimités")
+        if (credits.bool("unlimited") == true) return Spend(kind = SpendKind.UNLIMITED)
         val balance = credits.num("balance") ?: return null
-        return Spend(label = "Crédits", balance = Money(balance, "USD"))
+        return Spend(kind = SpendKind.CREDITS, balance = Money(balance, "USD"))
     }
 }

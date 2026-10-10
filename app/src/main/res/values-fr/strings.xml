@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_channel">Connexion</string>
+    <string name="login_notification">Connexion en cours…</string>
+    <string name="widget_overview">Jauge · Vue d\'ensemble</string>
+    <string name="widget_claude">Jauge · Claude</string>
+    <string name="widget_codex">Jauge · Codex</string>
+    <string name="widget_nous">Jauge · Nous Portal</string>
+    <string name="widget_overview_description">Tous vos abonnements IA d\'un coup d\'œil</string>
+    <string name="widget_provider_description">Session 5 h, semaine et dépassement</string>
+    <string name="widget_nous_description">Crédits mensuels et dépenses</string>
+
+    <string name="window_session">Session 5 h</string>
+    <string name="window_weekly">Semaine</string>
+    <string name="window_weekly_model">Semaine · %1$s</string>
+    <string name="window_monthly">Mois</string>
+    <string name="short_session">5 h</string>
+    <string name="short_weekly">Sem.</string>
+    <string name="short_model">Modèle</string>
+    <string name="short_monthly">Mois</string>
+
+    <string name="spend_overage">Dépassement</string>
+    <string name="spend_credits">Crédits</string>
+    <string name="spend_unlimited">Crédits illimités</string>
+    <string name="spend_period">Dépensé sur la période</string>
+    <string name="spend_rolling_week">Dépenses (7 j)</string>
+    <string name="spend_top_up">Crédits top-up</string>
+
+    <string name="time_now">maintenant</string>
+    <string name="time_minutes">%1$d min</string>
+    <string name="time_hours">%1$d h %2$02d</string>
+    <string name="time_days">%1$d j %2$d h</string>
+    <string name="updated_just_now">à l\'instant</string>
+    <string name="updated_minutes_ago">il y a %1$d min</string>
+    <string name="percent">%1$d %%</string>
+    <string name="percent_short">%1$d%%</string>
+
+    <string name="error_offline">Hors ligne</string>
+    <string name="error_network">Erreur réseau</string>
+    <string name="error_rate_limited">Trop de requêtes (429)</string>
+    <string name="error_server">Service indisponible (%1$d)</string>
+    <string name="error_http">Erreur HTTP %1$d</string>
+    <string name="error_relogin">Reconnexion requise</string>
+    <string name="error_depleted">Crédits épuisés</string>
+
+    <string name="failure_port_busy">Le port local %1$d est indisponible</string>
+    <string name="failure_invalid_state">Réponse OAuth invalide (state)</string>
+    <string name="failure_missing_code">Aucun code d\'autorisation reçu</string>
+    <string name="failure_code_mismatch">Ce code ne correspond pas à cette tentative de connexion</string>
+    <string name="failure_expired">Le code a expiré, recommencez</string>
+    <string name="failure_denied">Connexion refusée</string>
+    <string name="failure_http">Erreur %1$d</string>
+    <string name="failure_http_detail">Erreur %1$d : %2$s</string>
+
+    <string name="widget_relogin">Reconnexion</string>
+    <string name="widget_relogin_long">Reconnexion requise</string>
+    <string name="widget_connect">Connecter</string>
+    <string name="widget_tap_connect">Touchez pour connecter</string>
+    <string name="widget_tap_connect_all">Touchez pour connecter vos comptes</string>
+    <string name="widget_refreshing">Actualisation…</string>
+    <string name="widget_refresh">Actualiser</string>
+    <string name="reset_in">↻ %1$s</string>
+
+    <string name="success_title">%1$s est connecté</string>
+    <string name="success_body">Vous pouvez revenir dans Jauge, vos widgets vont se mettre à jour.</string>
+    <string name="success_button">Revenir à Jauge</string>
+
+    <string name="action_refresh_all">Tout actualiser</string>
+    <string name="footer">Jauge %1$s · github.com/Sygix/Jauge</string>
+    <string name="connect">Se connecter</string>
+    <string name="connect_device">Se connecter (code appareil)</string>
+    <string name="device_code">Code appareil</string>
+    <string name="disabled">Désactivé</string>
+    <string name="top_up_balance">Solde top-up : %1$s</string>
+    <string name="status_waiting">En attente de la première actualisation</string>
+    <string name="status_relogin">Session expirée, reconnectez-vous</string>
+    <string name="status_error">%1$s · données %2$s</string>
+    <string name="status_updated">Mis à jour %1$s</string>
+    <string name="reconnect">Se reconnecter</string>
+    <string name="refresh">Actualiser</string>
+    <string name="disconnect">Déconnecter</string>
+    <string name="remaining_suffix">%1$s restant</string>
+    <string name="reset_line">Réinitialisation dans %1$s · %2$s</string>
+    <string name="describe_claude">Connectez votre compte Claude Pro, Max ou Team pour suivre la session de 5 h, la semaine et le dépassement.</string>
+    <string name="describe_codex">Connectez votre compte ChatGPT pour suivre les limites Codex (5 h, semaine) et vos crédits.</string>
+    <string name="describe_nous">Connectez votre compte Nous Portal (Hermes Agent) pour suivre vos crédits mensuels et vos dépenses.</string>
+    <string name="widgets_title">Widgets</string>
+    <string name="widgets_body">Ajoutez un widget puis redimensionnez-le librement : de 1×1 à 4×3, la mise en page s\'adapte.</string>
+    <string name="widget_pin_overview">Vue d\'ensemble</string>
+    <string name="refresh_title">Actualisation</string>
+    <string name="refresh_body">Fréquence de mise à jour des widgets en arrière-plan. Android peut la retarder en économie d\'énergie.</string>
+    <string name="interval_minutes">%1$d min</string>
+    <string name="interval_hours">%1$d h</string>
+    <string name="show_remaining">Afficher le restant</string>
+    <string name="show_remaining_body">Les jauges indiquent ce qu\'il reste plutôt que ce qui est consommé</string>
+    <string name="wifi_only">Wi‑Fi uniquement</string>
+    <string name="wifi_only_body">N\'actualiser en arrière-plan que sur un réseau non limité</string>
+    <string name="appearance_title">Apparence des widgets</string>
+    <string name="widget_background">Fond derrière les widgets</string>
+    <string name="widget_background_body">Désactivé, les jauges sont posées directement sur le fond d\'écran</string>
+    <string name="text_color">Couleur du texte</string>
+    <string name="text_color_themed">Suit le thème du téléphone quand le fond est affiché</string>
+    <string name="text_color_auto">Auto : sombre sur un fond d\'écran clair, clair sinon</string>
+    <string name="tone_auto">Auto</string>
+    <string name="tone_light">Clair</string>
+    <string name="tone_dark">Sombre</string>
+
+    <string name="login_title">Connexion à %1$s</string>
+    <string name="login_browser">Autorisez Jauge dans le navigateur, l\'application récupère la connexion automatiquement.</string>
+    <string name="login_browser_fallback">Si le retour automatique échoue, utilisez la saisie manuelle du code.</string>
+    <string name="reopen_page">Rouvrir la page</string>
+    <string name="manual_code">Code manuel</string>
+    <string name="cancel">Annuler</string>
+    <string name="requesting_code">Demande d\'un code de connexion…</string>
+    <string name="finishing">Finalisation et première lecture de l\'usage…</string>
+    <string name="connected_title">%1$s connecté</string>
+    <string name="connected_body">Les widgets se mettent à jour automatiquement.</string>
+    <string name="done">Parfait</string>
+    <string name="failed_title">Connexion impossible</string>
+    <string name="retry">Réessayer</string>
+    <string name="close">Fermer</string>
+    <string name="manual_title">Code d\'autorisation Claude</string>
+    <string name="manual_body">Autorisez Jauge sur claude.ai, copiez le code affiché puis collez-le ici.</string>
+    <string name="code">Code</string>
+    <string name="paste">Coller</string>
+    <string name="validate">Valider</string>
+    <string name="reopen">Rouvrir</string>
+    <string name="device_codex">Ouvrez la page OpenAI, saisissez ce code et validez. Si la page le demande, activez la connexion par code appareil dans les paramètres de sécurité ChatGPT.</string>
+    <string name="device_nous">Ouvrez la page Nous Portal et validez ce code.</string>
+    <string name="device_waiting">En attente de validation…</string>
+    <string name="copy_and_open">Copier et ouvrir</string>
+</resources>

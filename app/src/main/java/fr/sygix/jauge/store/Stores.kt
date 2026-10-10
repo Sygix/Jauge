@@ -23,10 +23,14 @@ import kotlinx.coroutines.flow.map
 
 private val Context.jaugeStore: DataStore<Preferences> by preferencesDataStore(name = "jauge")
 
+enum class TextTone { AUTO, LIGHT, DARK }
+
 data class Settings(
     val refreshMinutes: Int = DEFAULT_REFRESH_MINUTES,
     val showRemaining: Boolean = false,
     val wifiOnly: Boolean = false,
+    val textTone: TextTone = TextTone.AUTO,
+    val widgetBackground: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_REFRESH_MINUTES = 15
@@ -43,12 +47,16 @@ class JaugeStore(context: Context, private val box: SecureBox = SecureBox()) {
     private val refreshKey = intPreferencesKey("refresh_minutes")
     private val remainingKey = booleanPreferencesKey("show_remaining")
     private val wifiKey = booleanPreferencesKey("wifi_only")
+    private val toneKey = stringPreferencesKey("text_tone")
+    private val backgroundKey = booleanPreferencesKey("widget_background")
 
     val settings: Flow<Settings> = store.data.map {
         Settings(
             refreshMinutes = it[refreshKey] ?: Settings.DEFAULT_REFRESH_MINUTES,
             showRemaining = it[remainingKey] ?: false,
             wifiOnly = it[wifiKey] ?: false,
+            textTone = it[toneKey]?.let { name -> TextTone.entries.firstOrNull { tone -> tone.name == name } } ?: TextTone.AUTO,
+            widgetBackground = it[backgroundKey] ?: false,
         )
     }
 
@@ -92,6 +100,8 @@ class JaugeStore(context: Context, private val box: SecureBox = SecureBox()) {
             it[refreshKey] = next.refreshMinutes
             it[remainingKey] = next.showRemaining
             it[wifiKey] = next.wifiOnly
+            it[toneKey] = next.textTone.name
+            it[backgroundKey] = next.widgetBackground
         }
     }
 }

@@ -63,8 +63,8 @@ object CodexAuth {
 
     suspend fun requestDeviceCode(): DeviceCode {
         val json = Http.postJson("$ISSUER/api/accounts/deviceauth/usercode", Http.jsonBody(mapOf("client_id" to CLIENT_ID)))
-        val userCode = json.str("user_code") ?: json.str("usercode") ?: throw IOException("Code appareil absent")
-        val handle = json.str("device_auth_id") ?: throw IOException("device_auth_id absent")
+        val userCode = json.str("user_code") ?: json.str("usercode") ?: throw IOException("Missing device code")
+        val handle = json.str("device_auth_id") ?: throw IOException("Missing device_auth_id")
         return DeviceCode(
             userCode = userCode,
             verificationUrl = DEVICE_URL,
@@ -85,25 +85,25 @@ object CodexAuth {
             throw e
         }
         val authorizationCode = json.str("authorization_code") ?: return DevicePoll.Pending
-        val verifier = json.str("code_verifier") ?: throw IOException("code_verifier absent")
+        val verifier = json.str("code_verifier") ?: throw IOException("Missing code_verifier")
         return DevicePoll.Done(exchange(authorizationCode, verifier, DEVICE_REDIRECT_URI))
     }
 
     suspend fun refresh(current: Credentials): Credentials {
-        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Jeton de rafraîchissement absent")
+        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Missing refresh token")
         val json = try {
             Http.postJson(
                 TOKEN_URL,
                 Http.formBody(mapOf("grant_type" to "refresh_token", "refresh_token" to refreshToken, "client_id" to CLIENT_ID)),
             )
         } catch (e: HttpException) {
-            if (e.code in 400..403) throw AuthExpiredException("Session ChatGPT expirée") else throw e
+            if (e.code in 400..403) throw AuthExpiredException("ChatGPT session expired") else throw e
         }
         return credentials(json, current)
     }
 
     private fun credentials(json: JsonObject, previous: Credentials?): Credentials {
-        val access = json.str("access_token") ?: throw IOException("Réponse sans access_token")
+        val access = json.str("access_token") ?: throw IOException("Response without access_token")
         val idClaims = json.str("id_token")?.let(Jwt::claims)
         val authClaims = Jwt.claims(access)?.obj("https://api.openai.com/auth")
             ?: idClaims?.obj("https://api.openai.com/auth")

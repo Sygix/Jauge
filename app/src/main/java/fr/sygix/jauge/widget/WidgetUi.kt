@@ -40,11 +40,14 @@ import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.model.UsageSnapshot
 import fr.sygix.jauge.model.UsageWindow
 import fr.sygix.jauge.ui.Format
+import fr.sygix.jauge.ui.Texts
+import android.content.Context
 import kotlin.math.roundToInt
 
 fun fixed(color: Int): ColorProvider = ColorProvider(day = Color(color), night = Color(color))
 
 data class WidgetModel(
+    val context: Context,
     val provider: Provider,
     val connected: Boolean,
     val snapshot: UsageSnapshot?,
@@ -52,6 +55,18 @@ data class WidgetModel(
     val nowMs: Long,
 ) {
     fun shown(window: UsageWindow): Double = Format.shown(window.usedPercent, showRemaining)
+
+    fun pct(window: UsageWindow): String = Format.percentShort(context, shown(window))
+
+    fun countdown(window: UsageWindow): String? = Format.countdown(context, window.resetsAtMs, nowMs)
+
+    fun resetIn(window: UsageWindow): String? = countdown(window)?.let { context.getString(R.string.reset_in, it) }
+
+    fun label(window: UsageWindow): String = Texts.window(context, window)
+
+    fun short(window: UsageWindow): String = "${Texts.windowShort(context, window.kind)} ${pct(window)}"
+
+    fun string(id: Int, vararg args: Any): String = context.getString(id, *args)
 
     fun color(window: UsageWindow?): Int = window?.let { Palette.forUsage(provider, it.usedPercent) } ?: provider.accent
 }
@@ -73,9 +88,9 @@ fun RingGauge(model: WidgetModel, size: Dp, showCaption: Boolean = true, caption
         Image(provider = ImageProvider(bitmap), contentDescription = null, modifier = GlanceModifier.fillMaxSize())
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = outer?.let { Format.percentShort(model.shown(it)) } ?: "—",
+                text = outer?.let { model.pct(it) } ?: "—",
                 style = TextStyle(
-                    color = GlanceTheme.colors.onSurface,
+                    color = LocalWidgetColors.current.text,
                     fontSize = (size.value * if (inner != null) 0.2f else 0.24f).sp,
                     fontWeight = FontWeight.Bold,
                 ),
@@ -83,8 +98,8 @@ fun RingGauge(model: WidgetModel, size: Dp, showCaption: Boolean = true, caption
             )
             if (showCaption && size.value >= 64) {
                 Text(
-                    text = captionOverride ?: outer?.let { Format.countdown(it.resetsAtMs, model.nowMs) } ?: model.provider.shortName,
-                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (size.value * 0.11f).coerceIn(8f, 12f).sp),
+                    text = captionOverride ?: outer?.let { model.countdown(it) } ?: model.provider.shortName,
+                    style = TextStyle(color = LocalWidgetColors.current.muted, fontSize = (size.value * 0.11f).coerceIn(8f, 12f).sp),
                     maxLines = 1,
                 )
             }
@@ -116,7 +131,7 @@ fun Label(text: String, size: TextUnit = 11.sp, bold: Boolean = false, muted: Bo
         text = text,
         modifier = modifier,
         style = TextStyle(
-            color = color ?: if (muted) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
+            color = color ?: if (muted) LocalWidgetColors.current.muted else LocalWidgetColors.current.text,
             fontSize = size,
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
         ),
@@ -129,13 +144,13 @@ fun WindowRow(model: WidgetModel, window: UsageWindow, width: Dp, compact: Boole
     val color = model.color(window)
     Column(modifier = GlanceModifier.width(width)) {
         Row(modifier = GlanceModifier.width(width), verticalAlignment = Alignment.CenterVertically) {
-            Label(window.label, size = if (compact) 10.sp else 11.sp, modifier = GlanceModifier.defaultWeight())
-            val countdown = Format.countdown(window.resetsAtMs, model.nowMs)
-            if (countdown != null && width.value >= 120) {
-                Label("↻ $countdown", size = 10.sp)
+            Label(model.label(window), size = if (compact) 10.sp else 11.sp, modifier = GlanceModifier.defaultWeight())
+            val reset = model.resetIn(window)
+            if (reset != null && width.value >= 120) {
+                Label(reset, size = 10.sp)
                 Spacer(GlanceModifier.width(6.dp))
             }
-            Label(Format.percentShort(model.shown(window)), size = if (compact) 11.sp else 12.sp, bold = true, muted = false)
+            Label(model.pct(window), size = if (compact) 11.sp else 12.sp, bold = true, muted = false)
         }
         Spacer(GlanceModifier.height(3.dp))
         Bar(model.shown(window) / 100, color, width, if (compact) 5.dp else 6.dp)
@@ -147,8 +162,8 @@ fun SpendRow(model: WidgetModel, width: Dp) {
     val spend = model.snapshot?.spend ?: return
     Column(modifier = GlanceModifier.width(width)) {
         Row(modifier = GlanceModifier.width(width), verticalAlignment = Alignment.CenterVertically) {
-            Label(spend.label, modifier = GlanceModifier.defaultWeight())
-            Label(Format.spend(spend), bold = true, muted = false)
+            Label(Texts.spend(model.context, spend.kind), modifier = GlanceModifier.defaultWeight())
+            Label(Format.spend(model.context, spend), bold = true, muted = false)
         }
         val percent = spend.percent
         if (percent != null && spend.enabled) {
@@ -179,21 +194,22 @@ fun Header(model: WidgetModel, width: Dp, showRefresh: Boolean = true) {
 fun StatusText(model: WidgetModel) {
     val snapshot = model.snapshot ?: return
     val text = when {
-        snapshot.needsLogin -> "Reconnexion requise"
-        snapshot.error != null -> "⚠ " + Format.updated(snapshot.fetchedAtMs, model.nowMs)
-        else -> Format.updated(snapshot.fetchedAtMs, model.nowMs)
+        snapshot.needsLogin -> model.string(R.string.widget_relogin_long)
+        snapshot.error != null -> "⚠ " + Format.updated(model.context, snapshot.fetchedAtMs, model.nowMs)
+        else -> Format.updated(model.context, snapshot.fetchedAtMs, model.nowMs)
     }
-    Label(text, size = 10.sp, color = if (snapshot.error != null) GlanceTheme.colors.error else null)
+    Label(text, size = 10.sp, color = if (snapshot.error != null) LocalWidgetColors.current.error else null)
 }
 
 @Composable
 fun RefreshButton(size: Dp = 22.dp) {
+    val description = LocalContext.current.getString(R.string.widget_refresh)
     Box(modifier = GlanceModifier.size(size).clickable(actionRunCallback<RefreshAction>()), contentAlignment = Alignment.Center) {
         Image(
             provider = ImageProvider(R.drawable.ic_refresh),
-            contentDescription = "Actualiser",
+            contentDescription = description,
             modifier = GlanceModifier.size(size * 0.7f),
-            colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant),
+            colorFilter = ColorFilter.tint(LocalWidgetColors.current.muted),
         )
     }
 }
@@ -215,8 +231,8 @@ fun Placeholder(model: WidgetModel, small: Boolean) {
         Spacer(GlanceModifier.height(4.dp))
         Label(
             text = when {
-                !model.connected -> if (small) "Connecter" else "Touchez pour connecter"
-                else -> "Actualisation…"
+                !model.connected -> model.string(if (small) R.string.widget_connect else R.string.widget_tap_connect)
+                else -> model.string(R.string.widget_refreshing)
             },
             size = 10.sp,
         )

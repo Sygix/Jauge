@@ -59,12 +59,12 @@ object ClaudeAuth {
     }
 
     suspend fun refresh(current: Credentials): Credentials {
-        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Jeton de rafraîchissement absent")
+        val refreshToken = current.refreshToken ?: throw AuthExpiredException("Missing refresh token")
         val form = mapOf("grant_type" to "refresh_token", "refresh_token" to refreshToken, "client_id" to CLIENT_ID)
         val json = try {
             postToken { Http.formBody(form) }
         } catch (e: HttpException) {
-            if (e.code in 400..403) throw AuthExpiredException("Session Claude expirée") else throw e
+            if (e.code in 400..403) throw AuthExpiredException("Claude session expired") else throw e
         }
         return credentials(json, current).let { if (it.plan == null) withProfile(it) else it }
     }
@@ -81,11 +81,11 @@ object ClaudeAuth {
                 last = e
             }
         }
-        throw last ?: IOException("Échange de jeton impossible")
+        throw last ?: IOException("Token exchange failed")
     }
 
     private fun credentials(json: JsonObject, previous: Credentials?): Credentials {
-        val access = json.str("access_token") ?: throw IOException("Réponse sans access_token")
+        val access = json.str("access_token") ?: throw IOException("Response without access_token")
         val expiresIn = json.long("expires_in") ?: 3600
         return Credentials(
             accessToken = access,

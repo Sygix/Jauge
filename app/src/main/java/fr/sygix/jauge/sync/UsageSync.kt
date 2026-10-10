@@ -7,6 +7,7 @@ package fr.sygix.jauge.sync
 
 import fr.sygix.jauge.model.Credentials
 import fr.sygix.jauge.model.Provider
+import fr.sygix.jauge.model.UsageError
 import fr.sygix.jauge.model.UsageSnapshot
 import fr.sygix.jauge.net.AuthExpiredException
 import fr.sygix.jauge.net.HttpException
@@ -53,7 +54,7 @@ class UsageSync(
         } catch (e: CancellationException) {
             throw e
         } catch (e: AuthExpiredException) {
-            failed(previous, provider, now, e.message ?: "Reconnexion requise", needsLogin = true)
+            failed(previous, provider, now, UsageError.RELOGIN, needsLogin = true)
         } catch (e: Exception) {
             failed(previous, provider, now, describe(e), needsLogin = false)
         }
@@ -72,7 +73,7 @@ class UsageSync(
             try {
                 client.fetch(credentials, now)
             } catch (retry: HttpException) {
-                if (retry.isAuthError) throw AuthExpiredException("Reconnexion requise") else throw retry
+                if (retry.isAuthError) throw AuthExpiredException("Unauthorized after refresh") else throw retry
             }
         }
     }
@@ -89,12 +90,12 @@ class UsageSync(
 
         fun describe(e: Throwable): String = when (e) {
             is HttpException -> when {
-                e.code == 429 -> "Trop de requêtes (429)"
-                e.code >= 500 -> "Service indisponible (${e.code})"
-                else -> "Erreur HTTP ${e.code}"
+                e.code == 429 -> UsageError.RATE_LIMITED
+                e.code >= 500 -> UsageError.SERVER_PREFIX + e.code
+                else -> UsageError.HTTP_PREFIX + e.code
             }
-            is UnknownHostException -> "Hors ligne"
-            is IOException -> e.message?.takeIf { it.isNotBlank() } ?: "Erreur réseau"
+            is UnknownHostException, is java.net.ConnectException, is java.net.SocketTimeoutException -> UsageError.OFFLINE
+            is IOException -> e.message?.takeIf { it.isNotBlank() } ?: UsageError.NETWORK
             else -> e.message ?: e.javaClass.simpleName
         }
     }

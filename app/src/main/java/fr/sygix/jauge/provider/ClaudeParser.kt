@@ -8,6 +8,7 @@ package fr.sygix.jauge.provider
 import fr.sygix.jauge.model.Money
 import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.model.Spend
+import fr.sygix.jauge.model.SpendKind
 import fr.sygix.jauge.model.UsageSnapshot
 import fr.sygix.jauge.model.UsageWindow
 import fr.sygix.jauge.model.WindowKind
@@ -50,30 +51,22 @@ object ClaudeParser {
         val percent = limit.num("percent") ?: return@mapNotNull null
         val resets = parseInstantMs(limit.str("resets_at"))
         val model = limit.obj("scope")?.obj("model")?.str("display_name")
-        when (limit.str("kind")) {
-            "session" -> UsageWindow(WindowKind.SESSION, Labels.SESSION, percent, resets)
-            "weekly_all" -> UsageWindow(WindowKind.WEEKLY, Labels.WEEKLY, percent, resets)
-            else -> when (limit.str("group")) {
-                "session" -> UsageWindow(WindowKind.SESSION, Labels.SESSION, percent, resets)
-                else -> UsageWindow(
-                    WindowKind.WEEKLY_MODEL,
-                    Labels.weeklyModel(model ?: prettySlug(limit.str("kind")) ?: "?"),
-                    percent,
-                    resets,
-                )
-            }
+        when {
+            limit.str("kind") == "session" || limit.str("group") == "session" -> UsageWindow(WindowKind.SESSION, percent, resets)
+            limit.str("kind") == "weekly_all" -> UsageWindow(WindowKind.WEEKLY, percent, resets)
+            else -> UsageWindow(WindowKind.WEEKLY_MODEL, percent, resets, model ?: prettySlug(limit.str("kind")))
         }
     }.sortedBy { it.kind.ordinal }
 
     private fun legacyWindows(json: JsonObject): List<UsageWindow> = listOf(
-        Triple("five_hour", WindowKind.SESSION, Labels.SESSION),
-        Triple("seven_day", WindowKind.WEEKLY, Labels.WEEKLY),
-        Triple("seven_day_opus", WindowKind.WEEKLY_MODEL, Labels.weeklyModel("Opus")),
-        Triple("seven_day_sonnet", WindowKind.WEEKLY_MODEL, Labels.weeklyModel("Sonnet")),
-    ).mapNotNull { (key, kind, label) ->
+        Triple("five_hour", WindowKind.SESSION, null),
+        Triple("seven_day", WindowKind.WEEKLY, null),
+        Triple("seven_day_opus", WindowKind.WEEKLY_MODEL, "Opus"),
+        Triple("seven_day_sonnet", WindowKind.WEEKLY_MODEL, "Sonnet"),
+    ).mapNotNull { (key, kind, model) ->
         val window = json.obj(key) ?: return@mapNotNull null
         val used = window.num("utilization") ?: return@mapNotNull null
-        UsageWindow(kind, label, used, parseInstantMs(window.str("resets_at")))
+        UsageWindow(kind, used, parseInstantMs(window.str("resets_at")), model)
     }
 
     private fun spend(json: JsonObject): Spend? = modernSpend(json) ?: legacySpend(json)
@@ -84,7 +77,7 @@ object ClaudeParser {
         val limit = money(spend.obj("limit"))
         if (used == null && limit == null) return null
         return Spend(
-            label = "Dépassement",
+            kind = SpendKind.OVERAGE,
             used = used,
             limit = limit,
             percent = spend.num("percent") ?: percentOf(used, limit),
@@ -101,7 +94,7 @@ object ClaudeParser {
         val limit = extra.num("monthly_limit")?.let { Money(minorToMajor(it, decimals), currency) }
         if (used == null && limit == null) return null
         return Spend(
-            label = "Dépassement",
+            kind = SpendKind.OVERAGE,
             used = used,
             limit = limit,
             percent = extra.num("utilization") ?: percentOf(used, limit),

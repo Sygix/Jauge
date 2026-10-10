@@ -5,6 +5,8 @@
 
 package fr.sygix.jauge.provider
 
+import fr.sygix.jauge.model.SpendKind
+import fr.sygix.jauge.model.UsageError
 import fr.sygix.jauge.model.WindowKind
 import fr.sygix.jauge.net.Http
 import kotlinx.serialization.json.jsonObject
@@ -29,14 +31,27 @@ class NousParserTest {
         assertEquals(75.0, month.usedPercent, 0.001)
         assertEquals("Pro", snapshot.plan)
         assertEquals("n@r.ai", snapshot.account)
-        assertEquals(30.0, snapshot.spend!!.percent!!, 0.001)
+        assertEquals(SpendKind.PERIOD, snapshot.spend!!.kind)
+        assertEquals(15.0, snapshot.spend!!.used!!.amount, 0.001)
+        assertEquals(20.0, snapshot.spend!!.limit!!.amount, 0.001)
+        assertEquals(75.0, snapshot.spend!!.percent!!, 0.001)
         assertEquals(3.25, snapshot.spend!!.balance!!.amount, 0.001)
         assertNull(snapshot.error)
     }
 
     @Test
+    fun fallsBackToRollingMemberSpend() {
+        val json = Http.json.parseToJsonElement(
+            """{"paid_service_access": {"allowed": true, "member_spend_usd": 4.0, "member_spend_cap_usd": 40.0}}""",
+        ).jsonObject
+        val spend = NousParser.parse(json, 0L).spend!!
+        assertEquals(SpendKind.ROLLING_WEEK, spend.kind)
+        assertEquals(10.0, spend.percent!!, 0.001)
+    }
+
+    @Test
     fun flagsDepletedAccess() {
         val json = Http.json.parseToJsonElement("""{"paid_service_access": {"allowed": false}}""").jsonObject
-        assertEquals("Crédits épuisés", NousParser.parse(json, 0L).error)
+        assertEquals(UsageError.DEPLETED, NousParser.parse(json, 0L).error)
     }
 }

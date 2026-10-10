@@ -7,6 +7,8 @@ package fr.sygix.jauge.auth
 
 import android.content.Context
 import fr.sygix.jauge.model.Credentials
+import fr.sygix.jauge.model.LoginFailedException
+import fr.sygix.jauge.model.LoginFailure
 import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.net.HttpException
 import fr.sygix.jauge.provider.ClaudeAuth
@@ -36,7 +38,7 @@ sealed interface LoginState {
     data class WaitingDevice(val provider: Provider, val code: DeviceCode) : LoginState
     data class Finishing(val provider: Provider) : LoginState
     data class Success(val provider: Provider) : LoginState
-    data class Failed(val provider: Provider, val message: String) : LoginState
+    data class Failed(val provider: Provider, val failure: LoginFailure) : LoginState
 }
 
 class LoginBroker(private val context: Context, private val sync: UsageSync) {
@@ -58,9 +60,9 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
         val port = if (provider == Provider.CODEX) CodexAuth.LOOPBACK_PORT else 0
         val path = if (provider == Provider.CODEX) "/auth/callback" else "/callback"
         val loopback = try {
-            LoopbackServer.start(scope, port, path, SuccessPage.html(provider))
+            LoopbackServer.start(scope, port, path, SuccessPage.html(context, provider))
         } catch (e: IOException) {
-            mutableState.value = LoginState.Failed(provider, "Port local $port indisponible")
+            mutableState.value = LoginState.Failed(provider, LoginFailure.PortBusy(port))
             return null
         }
         server = loopback
@@ -71,16 +73,16 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
         val url = when (provider) {
             Provider.CLAUDE -> ClaudeAuth.authorizeUrl(pkce, oauthState, redirectUri, manual = false)
             Provider.CODEX -> CodexAuth.authorizeUrl(pkce, oauthState)
-            Provider.NOUS -> error("Nous Portal utilise le code appareil")
+            Provider.NOUS -> error("Nous Portal uses the device code flow")
         }
         LoginService.start(context)
         mutableState.value = LoginState.WaitingBrowser(provider, url)
         job = scope.launch {
             try {
                 val params = withTimeout(TIMEOUT_MS) { loopback.awaitCallback() }
-                params["error"]?.let { throw IOException(params["error_description"]?.ifBlank { null } ?: it) }
-                if (params["state"] != oauthState) throw IOException("Réponse OAuth invalide (state)")
-                val code = params["code"]?.takeIf { it.isNotBlank() } ?: throw IOException("Code d'autorisation absent")
+                params["error"]?.let { throw LoginFailedException(LoginFailure.Other(params["error_description"]?.ifBlank { null } ?: it)) }
+                if (params["state"] != oauthState) throw LoginFailedException(LoginFailure.InvalidState)
+                val code = params["code"]?.takeIf { it.isNotBlank() } ?: throw LoginFailedException(LoginFailure.MissingCode)
                 mutableState.value = LoginState.Finishing(provider)
                 val credentials = when (provider) {
                     Provider.CLAUDE -> ClaudeAuth.exchange(code, oauthState, pkce.verifier, redirectUri)
@@ -115,7 +117,7 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
         val receivedState = parts.getOrNull(1)?.trim().orEmpty()
         if (code.isEmpty()) return
         if (receivedState.isNotEmpty() && receivedState != session.state) {
-            mutableState.value = LoginState.Failed(Provider.CLAUDE, "Ce code ne correspond pas à cette tentative de connexion")
+            mutableState.value = LoginState.Failed(Provider.CLAUDE, LoginFailure.CodeMismatch)
             return
         }
         job?.cancel()
@@ -142,7 +144,7 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
                 val code = when (provider) {
                     Provider.CODEX -> CodexAuth.requestDeviceCode()
                     Provider.NOUS -> NousAuth.requestDeviceCode()
-                    Provider.CLAUDE -> error("Claude n'a pas de code appareil")
+                    Provider.CLAUDE -> error("Claude has no device code flow")
                 }
                 mutableState.value = LoginState.WaitingDevice(provider, code)
                 var interval = code.intervalSeconds
@@ -161,7 +163,7 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
                         }
                     }
                 }
-                throw IOException("Code expiré, recommencez")
+                throw LoginFailedException(LoginFailure.Expired)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -193,9 +195,10 @@ class LoginBroker(private val context: Context, private val sync: UsageSync) {
         mutableState.value = LoginState.Success(provider)
     }
 
-    private fun describe(e: Throwable): String = when (e) {
-        is HttpException -> "Erreur ${e.code}" + (e.oauthError ?: e.body.take(160).takeIf { it.isNotBlank() })?.let { " : $it" }.orEmpty()
-        else -> UsageSync.describe(e)
+    private fun describe(e: Throwable): LoginFailure = when (e) {
+        is LoginFailedException -> e.failure
+        is HttpException -> LoginFailure.Http(e.code, e.oauthError ?: e.body.take(160).takeIf { it.isNotBlank() })
+        else -> LoginFailure.Other(UsageSync.describe(e))
     }
 
     private companion object {

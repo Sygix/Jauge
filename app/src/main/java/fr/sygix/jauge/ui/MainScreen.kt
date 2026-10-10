@@ -60,10 +60,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Context
+import androidx.compose.ui.res.stringResource
 import fr.sygix.jauge.BuildConfig
+import fr.sygix.jauge.R
 import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.model.UsageWindow
 import fr.sygix.jauge.store.Settings
+import fr.sygix.jauge.store.TextTone
 import fr.sygix.jauge.widget.ClaudeWidgetReceiver
 import fr.sygix.jauge.widget.CodexWidgetReceiver
 import fr.sygix.jauge.widget.NousWidgetReceiver
@@ -86,10 +90,10 @@ fun MainScreen(viewModel: MainViewModel) {
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text("Jauge") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }, enabled = ui.providers.any { it.connected }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Tout actualiser")
+                        Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.action_refresh_all))
                     }
                 },
                 scrollBehavior = scroll,
@@ -122,7 +126,7 @@ fun MainScreen(viewModel: MainViewModel) {
             item { SettingsCard(ui.settings) { viewModel.updateSettings(it) } }
             item {
                 Text(
-                    "Jauge ${BuildConfig.VERSION_NAME} · github.com/Sygix/Jauge",
+                    stringResource(R.string.footer, BuildConfig.VERSION_NAME),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -165,6 +169,7 @@ private fun ProviderCard(
     onRefresh: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
+    val context = LocalContext.current
     val provider = item.provider
     val snapshot = item.snapshot
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = MaterialTheme.shapes.extraLarge) {
@@ -191,11 +196,11 @@ private fun ProviderCard(
 
             if (!item.connected) {
                 Spacer(Modifier.height(12.dp))
-                Text(description(provider), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(description(context, provider), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onConnect) { Text(if (provider == Provider.NOUS) "Se connecter (code appareil)" else "Se connecter") }
-                    if (provider == Provider.CODEX) OutlinedButton(onClick = onDeviceCode) { Text("Code appareil") }
+                    Button(onClick = onConnect) { Text(stringResource(if (provider == Provider.NOUS) R.string.connect_device else R.string.connect)) }
+                    if (provider == Provider.CODEX) OutlinedButton(onClick = onDeviceCode) { Text(stringResource(R.string.device_code)) }
                 }
                 return@Column
             }
@@ -207,22 +212,26 @@ private fun ProviderCard(
             snapshot?.spend?.let { spend ->
                 Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(spend.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(Format.spend(spend), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(Texts.spend(context, spend.kind), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(Format.spend(context, spend), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
                 spend.percent?.takeIf { spend.enabled }?.let { percent ->
                     Spacer(Modifier.height(6.dp))
                     Gauge((percent / 100).toFloat(), Color(Palette.forUsage(provider, percent)), 6)
                 }
-                if (!spend.enabled) Text("Désactivé", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!spend.enabled) Text(stringResource(R.string.disabled), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                spend.balance?.takeIf { spend.used != null }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.top_up_balance, Format.money(context, it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
             Spacer(Modifier.height(14.dp))
             val status = when {
-                snapshot == null -> "En attente de la première actualisation"
-                snapshot.needsLogin -> "Session expirée, reconnectez-vous"
-                snapshot.error != null -> "${snapshot.error} · données ${Format.updated(snapshot.fetchedAtMs, nowMs)}"
-                else -> "Mis à jour ${Format.updated(snapshot.fetchedAtMs, nowMs)}"
+                snapshot == null -> stringResource(R.string.status_waiting)
+                snapshot.needsLogin -> stringResource(R.string.status_relogin)
+                snapshot.error != null -> stringResource(R.string.status_error, Texts.error(context, snapshot.error), Format.updated(context, snapshot.fetchedAtMs, nowMs))
+                else -> stringResource(R.string.status_updated, Format.updated(context, snapshot.fetchedAtMs, nowMs))
             }
             Text(
                 status,
@@ -231,9 +240,9 @@ private fun ProviderCard(
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (snapshot?.needsLogin == true) Button(onClick = onConnect) { Text("Se reconnecter") }
-                else OutlinedButton(onClick = onRefresh, enabled = !refreshing) { Text("Actualiser") }
-                TextButton(onClick = onDisconnect) { Text("Déconnecter") }
+                if (snapshot?.needsLogin == true) Button(onClick = onConnect) { Text(stringResource(R.string.reconnect)) }
+                else OutlinedButton(onClick = onRefresh, enabled = !refreshing) { Text(stringResource(R.string.refresh)) }
+                TextButton(onClick = onDisconnect) { Text(stringResource(R.string.disconnect)) }
             }
         }
     }
@@ -241,22 +250,23 @@ private fun ProviderCard(
 
 @Composable
 private fun WindowLine(provider: Provider, window: UsageWindow, nowMs: Long, showRemaining: Boolean) {
+    val context = LocalContext.current
     val shown = Format.shown(window.usedPercent, showRemaining)
     Row(verticalAlignment = Alignment.Bottom) {
-        Text(window.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(Texts.window(context, window), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(
-            Format.percent(shown) + if (showRemaining) " restant" else "",
+            Format.percent(context, shown).let { if (showRemaining) stringResource(R.string.remaining_suffix, it) else it },
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
         )
     }
     Spacer(Modifier.height(6.dp))
     Gauge((shown / 100).toFloat(), Color(Palette.forUsage(provider, window.usedPercent)), 8)
-    val countdown = Format.countdown(window.resetsAtMs, nowMs)
+    val countdown = Format.countdown(context, window.resetsAtMs, nowMs)
     if (countdown != null) {
         Spacer(Modifier.height(4.dp))
         Text(
-            "Réinitialisation dans $countdown · ${Format.resetAt(window.resetsAtMs, nowMs)}",
+            stringResource(R.string.reset_line, countdown, Format.resetAt(context, window.resetsAtMs, nowMs).orEmpty()),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -276,11 +286,13 @@ private fun Gauge(fraction: Float, color: Color, heightDp: Int) {
     )
 }
 
-private fun description(provider: Provider): String = when (provider) {
-    Provider.CLAUDE -> "Connectez votre compte Claude Pro, Max ou Team pour suivre la session de 5 h, la semaine et le dépassement."
-    Provider.CODEX -> "Connectez votre compte ChatGPT pour suivre les limites Codex (5 h, semaine) et vos crédits."
-    Provider.NOUS -> "Connectez votre compte Nous Portal (Hermes Agent) pour suivre vos crédits mensuels et vos dépenses."
-}
+private fun description(context: Context, provider: Provider): String = context.getString(
+    when (provider) {
+        Provider.CLAUDE -> R.string.describe_claude
+        Provider.CODEX -> R.string.describe_codex
+        Provider.NOUS -> R.string.describe_nous
+    },
+)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -291,18 +303,18 @@ private fun WidgetsCard() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Widgets, contentDescription = null)
                 Spacer(Modifier.width(10.dp))
-                Text("Widgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.widgets_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Ajoutez un widget puis redimensionnez-le librement : de 1×1 à 4×3, la mise en page s'adapte.",
+                stringResource(R.string.widgets_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
-                    "Vue d'ensemble" to OverviewWidgetReceiver::class.java,
+                    stringResource(R.string.widget_pin_overview) to OverviewWidgetReceiver::class.java,
                     "Claude" to ClaudeWidgetReceiver::class.java,
                     "Codex" to CodexWidgetReceiver::class.java,
                     "Nous" to NousWidgetReceiver::class.java,
@@ -319,10 +331,10 @@ private fun WidgetsCard() {
 private fun SettingsCard(settings: Settings, onChange: ((Settings) -> Settings) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = MaterialTheme.shapes.extraLarge) {
         Column(Modifier.padding(20.dp)) {
-            Text("Actualisation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.refresh_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Fréquence de mise à jour des widgets en arrière-plan. Android peut la retarder en économie d'énergie.",
+                stringResource(R.string.refresh_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -332,22 +344,53 @@ private fun SettingsCard(settings: Settings, onChange: ((Settings) -> Settings) 
                     FilterChip(
                         selected = settings.refreshMinutes == minutes,
                         onClick = { onChange { it.copy(refreshMinutes = minutes) } },
-                        label = { Text(if (minutes < 60) "$minutes min" else "${minutes / 60} h") },
+                        label = { Text(if (minutes < 60) stringResource(R.string.interval_minutes, minutes) else stringResource(R.string.interval_hours, minutes / 60)) },
                     )
                 }
             }
             Spacer(Modifier.height(12.dp))
             HorizontalDivider()
             SwitchRow(
-                title = "Afficher le restant",
-                subtitle = "Les jauges indiquent ce qu'il reste plutôt que ce qui est consommé",
+                title = stringResource(R.string.show_remaining),
+                subtitle = stringResource(R.string.show_remaining_body),
                 checked = settings.showRemaining,
             ) { checked -> onChange { it.copy(showRemaining = checked) } }
             SwitchRow(
-                title = "Wi‑Fi uniquement",
-                subtitle = "N'actualiser en arrière-plan que sur un réseau non limité",
+                title = stringResource(R.string.wifi_only),
+                subtitle = stringResource(R.string.wifi_only_body),
                 checked = settings.wifiOnly,
             ) { checked -> onChange { it.copy(wifiOnly = checked) } }
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(12.dp))
+            Text(stringResource(R.string.appearance_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            SwitchRow(
+                title = stringResource(R.string.widget_background),
+                subtitle = stringResource(R.string.widget_background_body),
+                checked = settings.widgetBackground,
+            ) { checked -> onChange { it.copy(widgetBackground = checked) } }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                stringResource(R.string.text_color),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (settings.widgetBackground) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                stringResource(if (settings.widgetBackground) R.string.text_color_themed else R.string.text_color_auto),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(TextTone.AUTO to R.string.tone_auto, TextTone.LIGHT to R.string.tone_light, TextTone.DARK to R.string.tone_dark).forEach { (tone, label) ->
+                    FilterChip(
+                        selected = settings.textTone == tone,
+                        enabled = !settings.widgetBackground,
+                        onClick = { onChange { it.copy(textTone = tone) } },
+                        label = { Text(stringResource(label)) },
+                    )
+                }
+            }
         }
     }
 }

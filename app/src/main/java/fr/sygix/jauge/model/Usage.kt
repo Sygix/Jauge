@@ -13,17 +13,30 @@ enum class WindowKind { SESSION, WEEKLY, WEEKLY_MODEL, MONTHLY }
 @Serializable
 data class UsageWindow(
     val kind: WindowKind,
-    val label: String,
     val usedPercent: Double,
     val resetsAtMs: Long? = null,
+    val model: String? = null,
 )
+
+@Serializable
+enum class SpendKind { OVERAGE, CREDITS, UNLIMITED, PERIOD, ROLLING_WEEK, TOP_UP }
+
+object UsageError {
+    const val OFFLINE = "offline"
+    const val NETWORK = "network"
+    const val RATE_LIMITED = "rate_limited"
+    const val RELOGIN = "relogin"
+    const val DEPLETED = "depleted"
+    const val SERVER_PREFIX = "server:"
+    const val HTTP_PREFIX = "http:"
+}
 
 @Serializable
 data class Money(val amount: Double, val currency: String)
 
 @Serializable
 data class Spend(
-    val label: String,
+    val kind: SpendKind,
     val used: Money? = null,
     val limit: Money? = null,
     val percent: Double? = null,

@@ -42,7 +42,7 @@ class ClaudeParserTest {
         assertEquals(listOf(WindowKind.SESSION, WindowKind.WEEKLY, WindowKind.WEEKLY_MODEL), snapshot.windows.map { it.kind })
         assertEquals(7.0, snapshot.session!!.usedPercent, 0.001)
         assertEquals(1791649799777L, snapshot.session!!.resetsAtMs)
-        assertEquals("Semaine · Opus", snapshot.windows[2].label)
+        assertEquals("Opus", snapshot.windows[2].model)
         assertEquals("Max 5x", snapshot.plan)
     }
 
@@ -67,7 +67,7 @@ class ClaudeParserTest {
         val snapshot = ClaudeParser.parse(Http.json.parseToJsonElement(legacy).jsonObject, 0L, null, null)
         assertEquals(3, snapshot.windows.size)
         assertEquals(30.5, snapshot.session!!.usedPercent, 0.001)
-        assertEquals("Semaine · Sonnet", snapshot.windows[2].label)
+        assertEquals("Sonnet", snapshot.windows[2].model)
         assertEquals(50.0, snapshot.spend!!.limit!!.amount, 0.001)
         assertFalse(snapshot.spend!!.enabled)
     }
