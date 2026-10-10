@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="window_background">#FFF8F9FC</color>
+    <color name="launcher_background">#FF15171C</color>
+    <color name="preview_background">#FF1E2128</color>
+    <color name="preview_text">#FFE6E7EC</color>
+    <color name="preview_muted">#FFA9ACB6</color>
+    <color name="claude">#FFD97757</color>
+    <color name="codex">#FF10A37F</color>
+    <color name="nous">#FF7C6CF2</color>
+</resources>

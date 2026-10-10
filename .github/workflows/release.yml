@@ -1,0 +1,103 @@
+name: release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+        with:
+          packages: 'platforms;android-37.0 build-tools;37.0.0'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          cache-disabled: true
+
+      - name: Decode keystore
+        env:
+          JAUGE_KEYSTORE_BASE64: ${{ secrets.JAUGE_KEYSTORE_BASE64 }}
+          JAUGE_STORE_PASSWORD: ${{ secrets.JAUGE_STORE_PASSWORD }}
+          JAUGE_KEY_ALIAS: ${{ secrets.JAUGE_KEY_ALIAS }}
+          JAUGE_KEY_PASSWORD: ${{ secrets.JAUGE_KEY_PASSWORD }}
+        run: |
+          for name in JAUGE_KEYSTORE_BASE64 JAUGE_STORE_PASSWORD JAUGE_KEY_ALIAS JAUGE_KEY_PASSWORD; do
+            [ -n "${!name}" ] || { echo "::error::Secret $name manquant"; exit 1; }
+          done
+          echo "$JAUGE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build release APK
+        env:
+          JAUGE_VERSION: ${{ github.ref_name }}
+          JAUGE_STORE_FILE: ${{ runner.temp }}/release.keystore
+          JAUGE_STORE_PASSWORD: ${{ secrets.JAUGE_STORE_PASSWORD }}
+          JAUGE_KEY_ALIAS: ${{ secrets.JAUGE_KEY_ALIAS }}
+          JAUGE_KEY_PASSWORD: ${{ secrets.JAUGE_KEY_PASSWORD }}
+        run: ./gradlew testDebugUnitTest assembleRelease --no-daemon
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
+
+      - name: Verify APK signature
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk
+
+      - name: Stage release files
+        run: |
+          mkdir -p "$RUNNER_TEMP/dist"
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/dist/Jauge-${GITHUB_REF_NAME}.apk"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: app-release
+          path: ${{ runner.temp }}/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: app-release
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          state=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || echo missing)
+          case "$state" in
+            missing) gh release create "$TAG" --draft --verify-tag --generate-notes --title "Jauge $TAG" ;;
+            true) ;;
+            *) echo "::error::Release $TAG is already published"; exit 1 ;;
+          esac
+          gh release upload "$TAG" "Jauge-$TAG.apk" --clobber
+          gh release edit "$TAG" --draft=false

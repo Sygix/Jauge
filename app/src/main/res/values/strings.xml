@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Jauge</string>
+    <string name="login_channel">Connexion</string>
+    <string name="login_notification">Connexion en cours…</string>
+    <string name="widget_overview">Jauge · Vue d\'ensemble</string>
+    <string name="widget_claude">Jauge · Claude</string>
+    <string name="widget_codex">Jauge · Codex</string>
+    <string name="widget_nous">Jauge · Nous Portal</string>
+    <string name="widget_overview_description">Tous vos abonnements IA d\'un coup d\'œil</string>
+    <string name="widget_provider_description">Session 5 h, semaine et dépassement</string>
+    <string name="widget_nous_description">Crédits mensuels et dépenses</string>
+</resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/preview_background"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="12dp">
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/preview_ring"
+        android:tint="@color/nous"
+        android:importantForAccessibility="no" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Nous"
+        android:textColor="@color/preview_text"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mois · 45 %"
+        android:textColor="@color/preview_muted"
+        android:textSize="11sp" />
+</LinearLayout>
