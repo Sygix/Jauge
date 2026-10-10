@@ -1,0 +1,65 @@
+name: Bug report
+description: Something does not work as expected in Jauge.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        Do not include personal data: no email addresses, account names, tokens, authorization codes or raw API responses. Security issues go through the private advisory form, and questions go to GitHub Discussions.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the existing issues and this bug is not already reported.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Jauge version
+      description: Shown at the bottom of the app, or the name of the release you installed.
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Brand, Android version and launcher only.
+      placeholder: Pixel, Android 15, Pixel Launcher
+    validations:
+      required: true
+  - type: dropdown
+    id: service
+    attributes:
+      label: Service
+      multiple: true
+      options:
+        - Claude
+        - ChatGPT Codex
+        - Nous Portal
+        - Widgets in general
+        - Not service specific
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead. Screenshots of a widget are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Add the overview widget
+        2. Resize it to ...
+        3. ...
+    validations:
+      required: true
