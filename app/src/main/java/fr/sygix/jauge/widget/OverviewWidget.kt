@@ -94,7 +94,7 @@ internal fun OverviewContent(models: List<WidgetModel>) {
     ) {
         when {
             models.isEmpty() -> Empty(inner)
-            inner.height < 72.dp -> RingStrip(models, inner)
+            inner.height < maxOf(72.dp, Heights.mini * models.size) -> RingStrip(models, inner)
             else -> ProviderList(models, inner)
         }
     }
@@ -130,7 +130,12 @@ private fun RingStrip(models: List<WidgetModel>, inner: DpSize) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalAlignment = if (withText) Alignment.Start else Alignment.CenterHorizontally,
             ) {
-                RingGauge(model, ring, showCaption = false)
+                if (model.snapshot?.primary == null && model.snapshot?.spend != null) {
+                    Column(modifier = GlanceModifier.width(if (withText) ring else cellWidth), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Dot(model.provider.accent, 6.dp)
+                        Label(Format.spend(model.context, model.snapshot.spend), size = 10.sp, bold = true, muted = false)
+                    }
+                } else RingGauge(model, ring, showCaption = false)
                 if (withText) {
                     Spacer(GlanceModifier.width(8.dp))
                     Column(modifier = GlanceModifier.width(textWidth)) {
@@ -152,7 +157,8 @@ private fun RingStrip(models: List<WidgetModel>, inner: DpSize) {
 @Composable
 private fun ProviderList(models: List<WidgetModel>, inner: DpSize) {
     val count = models.size
-    val gaps = Heights.gap * (count - 1)
+    val gap = if (count > 1) minOf(Heights.gap, ((inner.height - Heights.mini * count) / (count - 1)).coerceAtLeast(0.dp)) else 0.dp
+    val gaps = gap * (count - 1)
     val sideBySide = (inner.width - 12.dp) / 2 >= 124.dp
     fun fits(row: Dp, header: Boolean) = row * count + gaps + (if (header) Heights.header else 0.dp) <= inner.height
     val styles = buildList {
@@ -173,13 +179,14 @@ private fun ProviderList(models: List<WidgetModel>, inner: DpSize) {
         if (header) OverviewHeader(models, inner.width)
         Spacer(GlanceModifier.defaultWeight())
         models.forEachIndexed { index, model ->
-            if (index > 0) Spacer(GlanceModifier.height(Heights.gap))
-            when (style) {
-                ListStyle.MINI -> MiniLine(model, inner.width)
-                ListStyle.LINE -> ProviderLine(model, inner.width, detail = false)
-                ListStyle.LINE_DETAIL -> ProviderLine(model, inner.width, detail = true)
-                ListStyle.BLOCK -> ProviderBlock(model, inner.width, spend = false)
-                ListStyle.BLOCK_SPEND -> ProviderBlock(model, inner.width, spend = true)
+            Column(modifier = GlanceModifier.padding(top = if (index > 0) gap else 0.dp)) {
+                when (style) {
+                    ListStyle.MINI -> MiniLine(model, inner.width)
+                    ListStyle.LINE -> ProviderLine(model, inner.width, detail = false)
+                    ListStyle.LINE_DETAIL -> ProviderLine(model, inner.width, detail = true)
+                    ListStyle.BLOCK -> ProviderBlock(model, inner.width, spend = false)
+                    ListStyle.BLOCK_SPEND -> ProviderBlock(model, inner.width, spend = true)
+                }
             }
         }
         Spacer(GlanceModifier.defaultWeight())
@@ -211,6 +218,7 @@ private fun TrailingValue(model: WidgetModel) {
     when {
         snapshot?.needsLogin == true -> Label(model.string(R.string.widget_relogin), size = 10.sp, color = LocalWidgetColors.current.error)
         primary != null -> Label(model.pct(primary), size = 12.sp, bold = true, muted = false)
+        snapshot?.spend != null -> Label(Format.spend(model.context, snapshot.spend), size = 11.sp, bold = true, muted = false)
         else -> Label("—", size = 11.sp)
     }
 }
@@ -231,8 +239,10 @@ private fun ProviderLine(model: WidgetModel, width: Dp, detail: Boolean) {
     val primary = snapshot?.primary
     Column(modifier = GlanceModifier.width(width)) {
         MiniLine(model, width)
-        Spacer(GlanceModifier.height(3.dp))
-        Bar((primary?.let { model.shown(it) } ?: 0.0) / 100, model.color(primary), width, 5.dp)
+        if (primary != null) {
+            Spacer(GlanceModifier.height(3.dp))
+            Bar(model.shown(primary) / 100, model.color(primary), width, 5.dp)
+        }
         if (detail) {
             val parts = listOfNotNull(
                 primary?.let { model.resetIn(it) },
@@ -273,7 +283,7 @@ private fun ProviderBlock(model: WidgetModel, width: Dp, spend: Boolean) {
                 WindowRow(model, secondary, half, compact = true)
             }
         }
-        if (spend && snapshot?.spend != null) {
+        if ((spend || primary == null) && snapshot?.spend != null) {
             Spacer(GlanceModifier.height(4.dp))
             SpendRow(model, width)
         }

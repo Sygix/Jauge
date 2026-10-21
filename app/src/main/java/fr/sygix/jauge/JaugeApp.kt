@@ -11,6 +11,8 @@ import fr.sygix.jauge.auth.LoginBroker
 import fr.sygix.jauge.provider.ClaudeClient
 import fr.sygix.jauge.provider.CodexClient
 import fr.sygix.jauge.provider.NousClient
+import fr.sygix.jauge.provider.OpenRouterClient
+import fr.sygix.jauge.provider.OpenCodeClient
 import fr.sygix.jauge.store.JaugeStore
 import fr.sygix.jauge.sync.RefreshScheduler
 import fr.sygix.jauge.sync.UsageSync
@@ -24,7 +26,7 @@ class AppGraph(context: Context) {
     val store = JaugeStore(context)
     val sync = UsageSync(
         store = store,
-        clients = listOf(ClaudeClient(), CodexClient(), NousClient()).associateBy { it.provider },
+        clients = listOf(ClaudeClient(), CodexClient(), NousClient(), OpenRouterClient(), OpenCodeClient()).associateBy { it.provider },
         onUpdated = { JaugeWidgets.updateAll(context) },
     )
     val login = LoginBroker(context, sync)

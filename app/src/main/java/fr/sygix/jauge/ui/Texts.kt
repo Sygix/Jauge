@@ -19,6 +19,8 @@ object Texts {
         WindowKind.WEEKLY -> context.getString(R.string.window_weekly)
         WindowKind.WEEKLY_MODEL -> context.getString(R.string.window_weekly_model, window.model ?: "?")
         WindowKind.MONTHLY -> context.getString(R.string.window_monthly)
+        WindowKind.FREE_DAILY -> context.getString(R.string.window_free_daily)
+        WindowKind.KEY_BUDGET -> context.getString(R.string.window_key_budget)
     }
 
     fun windowShort(context: Context, kind: WindowKind): String = context.getString(
@@ -27,6 +29,8 @@ object Texts {
             WindowKind.WEEKLY -> R.string.short_weekly
             WindowKind.WEEKLY_MODEL -> R.string.short_model
             WindowKind.MONTHLY -> R.string.short_monthly
+            WindowKind.FREE_DAILY -> R.string.short_free_daily
+            WindowKind.KEY_BUDGET -> R.string.short_key_budget
         },
     )
 
@@ -38,6 +42,8 @@ object Texts {
             SpendKind.PERIOD -> R.string.spend_period
             SpendKind.ROLLING_WEEK -> R.string.spend_rolling_week
             SpendKind.TOP_UP -> R.string.spend_top_up
+            SpendKind.KEY_TOTAL -> R.string.spend_key_total
+            SpendKind.LAST_30_DAYS -> R.string.spend_last_30_days
         },
     )
 
@@ -47,6 +53,8 @@ object Texts {
         code == UsageError.RATE_LIMITED -> context.getString(R.string.error_rate_limited)
         code == UsageError.RELOGIN -> context.getString(R.string.error_relogin)
         code == UsageError.DEPLETED -> context.getString(R.string.error_depleted)
+        code == UsageError.UNSUPPORTED_USAGE -> context.getString(R.string.error_unsupported_usage)
+        code == UsageError.PERMISSION -> context.getString(R.string.error_permission)
         code.startsWith(UsageError.SERVER_PREFIX) -> context.getString(R.string.error_server, code.removePrefix(UsageError.SERVER_PREFIX).toIntOrNull() ?: 0)
         code.startsWith(UsageError.HTTP_PREFIX) -> context.getString(R.string.error_http, code.removePrefix(UsageError.HTTP_PREFIX).toIntOrNull() ?: 0)
         else -> code

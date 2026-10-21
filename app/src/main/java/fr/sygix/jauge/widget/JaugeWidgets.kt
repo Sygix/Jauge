@@ -17,6 +17,8 @@ object JaugeWidgets {
         ClaudeWidget().updateAll(context)
         CodexWidget().updateAll(context)
         NousWidget().updateAll(context)
+        OpenRouterWidget().updateAll(context)
+        OpenCodeWidget().updateAll(context)
         OverviewWidget().updateAll(context)
     }
 }

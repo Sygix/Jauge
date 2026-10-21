@@ -79,6 +79,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startDeviceLogin(provider: Provider) = graph.login.startDevice(provider)
 
+    fun startApiKeyLogin(provider: Provider) = graph.login.startApiKey(provider)
+
+    fun submitApiKey(key: String) = graph.login.submitApiKey(key)
+
     fun cancelLogin() = graph.login.cancel()
 
     fun acknowledgeLogin() = graph.login.acknowledge()

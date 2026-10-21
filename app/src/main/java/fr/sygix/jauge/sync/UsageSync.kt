@@ -44,6 +44,17 @@ class UsageSync(
         return sync(provider)
     }
 
+    suspend fun connectValidated(provider: Provider, credentials: Credentials): UsageSnapshot {
+        val snapshot = locks.getValue(provider).withLock {
+            val snapshot = clients.getValue(provider).fetch(credentials, clock())
+            store.saveCredentials(provider, credentials)
+            store.saveSnapshot(snapshot)
+            snapshot
+        }
+        onUpdated()
+        return snapshot
+    }
+
     private suspend fun syncProvider(provider: Provider): UsageSnapshot? = locks.getValue(provider).withLock {
         val client = clients.getValue(provider)
         val stored = store.credentials(provider) ?: return@withLock null

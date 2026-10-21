@@ -8,7 +8,7 @@ package fr.sygix.jauge.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class WindowKind { SESSION, WEEKLY, WEEKLY_MODEL, MONTHLY }
+enum class WindowKind { SESSION, WEEKLY, WEEKLY_MODEL, MONTHLY, FREE_DAILY, KEY_BUDGET }
 
 @Serializable
 data class UsageWindow(
@@ -16,10 +16,12 @@ data class UsageWindow(
     val usedPercent: Double,
     val resetsAtMs: Long? = null,
     val model: String? = null,
+    val usedRequests: Long? = null,
+    val requestLimit: Long? = null,
 )
 
 @Serializable
-enum class SpendKind { OVERAGE, CREDITS, UNLIMITED, PERIOD, ROLLING_WEEK, TOP_UP }
+enum class SpendKind { OVERAGE, CREDITS, UNLIMITED, PERIOD, ROLLING_WEEK, TOP_UP, KEY_TOTAL, LAST_30_DAYS }
 
 object UsageError {
     const val OFFLINE = "offline"
@@ -27,6 +29,8 @@ object UsageError {
     const val RATE_LIMITED = "rate_limited"
     const val RELOGIN = "relogin"
     const val DEPLETED = "depleted"
+    const val UNSUPPORTED_USAGE = "unsupported_usage"
+    const val PERMISSION = "permission"
     const val SERVER_PREFIX = "server:"
     const val HTTP_PREFIX = "http:"
 }
@@ -54,6 +58,7 @@ data class UsageSnapshot(
     val spend: Spend? = null,
     val error: String? = null,
     val needsLogin: Boolean = false,
+    val quotaUnavailable: Boolean = false,
 ) {
     val session: UsageWindow? get() = windows.firstOrNull { it.kind == WindowKind.SESSION }
     val weekly: UsageWindow? get() = windows.firstOrNull { it.kind == WindowKind.WEEKLY }

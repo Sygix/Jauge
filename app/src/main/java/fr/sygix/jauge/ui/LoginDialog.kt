@@ -36,6 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -52,6 +55,7 @@ fun LoginDialog(
     onOpen: (String, Provider) -> Unit,
     onManual: () -> Unit,
     onSubmitCode: (String) -> Unit,
+    onSubmitApiKey: (String) -> Unit,
     onRetry: (Provider) -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
@@ -83,6 +87,7 @@ fun LoginDialog(
             },
         )
         is LoginState.WaitingManualCode -> ManualCodeDialog(state, onOpen, onSubmitCode, onCancel)
+        is LoginState.WaitingApiKey -> ApiKeyDialog(state, onSubmitApiKey, onCancel)
         is LoginState.RequestingDevice -> AlertDialog(
             onDismissRequest = {},
             title = { Text(stringResource(R.string.login_title, state.provider.displayName)) },
@@ -177,7 +182,11 @@ private fun DeviceDialog(state: LoginState.WaitingDevice, onOpen: (String, Provi
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    stringResource(if (state.provider == Provider.CODEX) R.string.device_codex else R.string.device_nous),
+                    stringResource(when (state.provider) {
+                        Provider.CODEX -> R.string.device_codex
+                        Provider.OPENCODE -> R.string.device_opencode
+                        else -> R.string.device_nous
+                    }),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
@@ -211,4 +220,36 @@ private fun clipboardText(context: Context): String? = runCatching {
 
 private fun copy(context: Context, text: String) {
     context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("code", text))
+}
+
+@Composable
+private fun ApiKeyDialog(state: LoginState.WaitingApiKey, onSubmit: (String) -> Unit, onCancel: () -> Unit) {
+    var key by remember(state.provider) { mutableStateOf("") }
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.api_key_title, state.provider.displayName)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.api_key_body), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(if (state.provider == Provider.OPENCODE) R.string.api_key_opencode_body else R.string.api_key_openrouter_body), style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it },
+                    label = { Text(stringResource(R.string.api_key)) },
+                    singleLine = true,
+                    enabled = !state.validating,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (state.validating) Waiting(stringResource(R.string.finishing))
+                state.failure?.let { Text(Texts.failure(context, it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSubmit(key) }, enabled = !state.validating && key.isNotBlank() && key.trim().none { it.isWhitespace() || it.isISOControl() }) { Text(stringResource(R.string.connect)) }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
+    )
 }

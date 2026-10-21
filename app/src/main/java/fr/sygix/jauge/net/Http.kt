@@ -54,6 +54,9 @@ object Http {
     suspend fun getJson(url: String, headers: Map<String, String>): JsonObject =
         execute(Request.Builder().url(url).get().headers(headers).build())
 
+    suspend fun getJsonElement(url: String, headers: Map<String, String>): JsonElement =
+        executeElement(Request.Builder().url(url).get().headers(headers).build())
+
     suspend fun postJson(url: String, body: RequestBody, headers: Map<String, String> = emptyMap()): JsonObject =
         execute(Request.Builder().url(url).post(body).headers(headers).build())
 
@@ -62,11 +65,13 @@ object Http {
         headers.forEach { (k, v) -> header(k, v) }
     }
 
-    private suspend fun execute(request: Request): JsonObject = withContext(Dispatchers.IO) {
+    private suspend fun execute(request: Request): JsonObject = executeElement(request).jsonObject
+
+    private suspend fun executeElement(request: Request): JsonElement = withContext(Dispatchers.IO) {
         client.newCall(request).execute().use { response ->
             val text = response.body.string()
             if (!response.isSuccessful) throw HttpException(response.code, text.take(2000))
-            if (text.isBlank()) JsonObject(emptyMap()) else json.parseToJsonElement(text).jsonObject
+            if (text.isBlank()) JsonObject(emptyMap()) else json.parseToJsonElement(text)
         }
     }
 }

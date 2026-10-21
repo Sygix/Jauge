@@ -180,12 +180,12 @@ fun Header(model: WidgetModel, width: Dp, showRefresh: Boolean = true) {
         Dot(model.provider.accent)
         Spacer(GlanceModifier.width(6.dp))
         Label(model.provider.shortName, size = 13.sp, bold = true, muted = false)
-        snapshot?.plan?.let {
+        snapshot?.plan?.takeIf { width >= 180.dp }?.let {
             Spacer(GlanceModifier.width(6.dp))
             Label(it, size = 10.sp)
         }
         Spacer(GlanceModifier.defaultWeight())
-        StatusText(model)
+        if (width >= 180.dp) StatusText(model)
         if (showRefresh) RefreshButton()
     }
 }

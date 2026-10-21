@@ -129,4 +129,27 @@
     <string name="device_nous">Ouvrez la page Nous Portal et validez ce code.</string>
     <string name="device_waiting">En attente de validation…</string>
     <string name="copy_and_open">Copier et ouvrir</string>
+    <string name="widget_openrouter">Jauge · OpenRouter</string>
+    <string name="widget_opencode">Jauge · OpenCode</string>
+    <string name="widget_openrouter_description">Budget de la clé, requêtes gratuites et crédits</string>
+    <string name="widget_opencode_description">Quotas Go et solde prépayé</string>
+    <string name="window_free_daily">Requêtes gratuites du jour</string>
+    <string name="window_key_budget">Budget de la clé</string>
+    <string name="short_free_daily">Gratuit</string>
+    <string name="short_key_budget">Budget</string>
+    <string name="spend_key_total">Dépenses de la clé · total</string>
+    <string name="spend_last_30_days">Dépenses · 30 derniers jours</string>
+    <string name="error_unsupported_usage">Aucun compteur d’usage pris en charge pour ce compte</string>
+    <string name="error_permission">Cette clé ne peut pas lire l’usage. Vérifiez ses droits de lecture ou connectez-vous avec le navigateur.</string>
+    <string name="describe_openrouter">Suivez le budget de votre clé, les requêtes gratuites quotidiennes et les crédits. La connexion navigateur crée une clé dédiée ; utilisez votre clé existante pour suivre ses dépenses.</string>
+    <string name="describe_opencode">Suivez les quotas OpenCode Go (5 heures, semaine, mois) et les crédits Console. Les modèles gratuits ne fournissent pas de quota restant.</string>
+    <string name="api_key">Clé API</string>
+    <string name="api_key_title">Connecter %1$s avec une clé</string>
+    <string name="api_key_body">Collez une clé existante. Elle est chiffrée dans le coffre de l’application avec Android Keystore.</string>
+    <string name="api_key_opencode_body">Une clé Go lit les quotas de l’abonnement. Pour le solde et les dépenses Console, utilisez une clé avec accès en lecture à Usage et Billing, ou connectez-vous avec le navigateur.</string>
+    <string name="api_key_openrouter_body">L’usage et le budget concernent cette clé. Les crédits du compte sont affichés lorsqu’ils sont accessibles.</string>
+    <string name="device_opencode">Ouvrez la page OpenCode Console et confirmez ce code.</string>
+    <string name="quota_unavailable">Aucun quota restant n’est fourni pour les modèles gratuits.</string>
+    <string name="request_count">%1$d / %2$d requêtes</string>
+    <string name="account_balance">Solde du compte : %1$s</string>
 </resources>

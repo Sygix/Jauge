@@ -130,4 +130,27 @@
     <string name="device_nous">Open the Nous Portal page and confirm this code.</string>
     <string name="device_waiting">Waiting for confirmation…</string>
     <string name="copy_and_open">Copy and open</string>
+    <string name="widget_openrouter">Jauge · OpenRouter</string>
+    <string name="widget_opencode">Jauge · OpenCode</string>
+    <string name="widget_openrouter_description">Key budget, free requests and credits</string>
+    <string name="widget_opencode_description">Go quotas and prepaid balance</string>
+    <string name="window_free_daily">Free requests today</string>
+    <string name="window_key_budget">Key budget</string>
+    <string name="short_free_daily">Free</string>
+    <string name="short_key_budget">Budget</string>
+    <string name="spend_key_total">Key spend · all time</string>
+    <string name="spend_last_30_days">Spend · last 30 days</string>
+    <string name="error_unsupported_usage">No supported usage counter is available for this account</string>
+    <string name="error_permission">This key cannot read usage. Check its read permissions or sign in with the browser.</string>
+    <string name="describe_openrouter">Track your key budget, daily free requests and credits. Browser sign-in creates a dedicated key; use your existing key to track its spend.</string>
+    <string name="describe_opencode">Track OpenCode Go quotas (5 hours, week, month) and Console credits. Free models do not expose a remaining quota.</string>
+    <string name="api_key">API key</string>
+    <string name="api_key_title">Connect %1$s with a key</string>
+    <string name="api_key_body">Paste an existing key. It is encrypted in the app vault using Android Keystore.</string>
+    <string name="api_key_opencode_body">A Go key reads subscription quotas. For Console balance and spend, use a key with Usage and Billing read access, or sign in with the browser.</string>
+    <string name="api_key_openrouter_body">Usage and budget belong to this key. Account credits are shown when accessible.</string>
+    <string name="device_opencode">Open the OpenCode Console page and confirm this code.</string>
+    <string name="quota_unavailable">No remaining quota is reported for free models.</string>
+    <string name="request_count">%1$d / %2$d requests</string>
+    <string name="account_balance">Account balance: %1$s</string>
 </resources>

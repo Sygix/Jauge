@@ -11,9 +11,12 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Shader
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -86,6 +89,43 @@ class WidgetPreviewTest {
     )
 
     @Test
+    fun keepsAllFiveProvidersVisibleInListLayouts() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val now = System.currentTimeMillis()
+        val snapshots = demo(now)
+        val models = Provider.entries.map { WidgetModel(context, it, true, snapshots.getValue(it), false, now) }
+        listOf(DpSize(180.dp, 160.dp), DpSize(330.dp, 220.dp)).forEach { size ->
+            render(context, size, variants.first().settings, { OverviewContent(models) }) { view ->
+                models.forEach { model ->
+                    val label = texts(view).first { it.text.toString() == model.provider.shortName }
+                    val bounds = Rect()
+                    assertTrue("${model.provider.shortName} must remain visible at $size", label.getLocalVisibleRect(bounds))
+                    assertTrue("${model.provider.shortName} must not be clipped at $size: $bounds of ${label.height}", bounds.height() >= label.height)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun keepsProviderTextInsideShortWidgets() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val now = System.currentTimeMillis()
+        val snapshots = demo(now)
+        listOf(Provider.CLAUDE, Provider.OPENROUTER, Provider.OPENCODE).forEach { provider ->
+            val model = WidgetModel(context, provider, true, snapshots.getValue(provider), false, now)
+            listOf(DpSize(140.dp, 50.dp), DpSize(180.dp, 50.dp), DpSize(330.dp, 50.dp), DpSize(140.dp, 90.dp)).forEach { size ->
+                render(context, size, variants.first().settings, { ProviderContent(model) }) { view ->
+                    texts(view).filter { it.visibility == View.VISIBLE && it.text.isNotBlank() }.forEach { label ->
+                        val bounds = Rect()
+                        assertTrue("$provider ${label.text} must remain visible at $size", label.getLocalVisibleRect(bounds))
+                        assertTrue("$provider ${label.text} must not be clipped at $size: $bounds of ${label.height}", bounds.height() >= label.height)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun rendersEveryWidgetAtEverySize() {
         val context: Context = ApplicationProvider.getApplicationContext()
         val now = System.currentTimeMillis()
@@ -104,7 +144,21 @@ class WidgetPreviewTest {
         val matrix = matrixHeights.map { h -> matrixWidths.map { w -> DpSize(w.dp, h.dp) } }
         sheet("overview-matrix", matrix, variants.first()) { OverviewContent(models) }
         sheet("claude-matrix", matrix, variants.first()) { ProviderContent(models.first()) }
+        models.filter { it.provider == Provider.OPENROUTER || it.provider == Provider.OPENCODE }.forEach { model ->
+            sheet("${model.provider.name.lowercase()}-matrix", matrix, variants.first()) { ProviderContent(model) }
+        }
+        val goPlus = models.first { it.provider == Provider.OPENCODE }.let { it.copy(snapshot = it.snapshot!!.copy(plan = "Go Plus")) }
+        sheet("opencode-go-plus", providerSizes, variants.first()) { ProviderContent(goPlus) }
+        val balanceOnly = WidgetModel(context, Provider.OPENCODE, true, UsageSnapshot(Provider.OPENCODE, now, plan = "Zen", spend = Spend(SpendKind.LAST_30_DAYS, used = Money(42.5, "USD"), balance = Money(18.2, "USD")), quotaUnavailable = true), false, now)
+        sheet("opencode-payg-matrix", matrix, variants.first()) { ProviderContent(balanceOnly) }
+        sheet("overview-payg-matrix", matrix, variants.first()) { OverviewContent(models.filter { it.provider != Provider.OPENCODE } + balanceOnly) }
         assertTrue(File(outDir, "overview-matrix.png").length() > 0)
+    }
+
+    private fun texts(view: View): List<TextView> = when (view) {
+        is TextView -> listOf(view)
+        is ViewGroup -> (0 until view.childCount).flatMap { texts(view.getChildAt(it)) }
+        else -> emptyList()
     }
 
     private fun sheet(name: String, rows: List<List<DpSize>>, variant: Variant, content: @Composable () -> Unit) {
@@ -140,7 +194,7 @@ class WidgetPreviewTest {
     }
 
     @OptIn(ExperimentalGlanceApi::class)
-    private fun render(context: Context, size: DpSize, settings: Settings, content: @Composable () -> Unit): Bitmap = runBlocking {
+    private fun render(context: Context, size: DpSize, settings: Settings, content: @Composable () -> Unit, validate: (View) -> Unit = {}): Bitmap = runBlocking {
         val density = context.resources.displayMetrics.density
         val width = (size.width.value * density).roundToInt()
         val height = (size.height.value * density).roundToInt()
@@ -148,6 +202,7 @@ class WidgetPreviewTest {
         val view = views.apply(context, FrameLayout(context))
         view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
         view.layout(0, 0, width, height)
+        validate(view)
         Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
     }
 
@@ -181,6 +236,19 @@ class WidgetPreviewTest {
                 plan = "Pro",
                 windows = listOf(UsageWindow(WindowKind.MONTHLY, 93.0, now + 21 * 24 * 60 * minute)),
                 spend = Spend(SpendKind.PERIOD, used = Money(18.6, "USD"), limit = Money(20.0, "USD"), percent = 93.0, balance = Money(3.25, "USD")),
+            ),
+            UsageSnapshot(
+                provider = Provider.OPENROUTER,
+                fetchedAtMs = now - minute,
+                windows = listOf(UsageWindow(WindowKind.KEY_BUDGET, 36.0, now + 10 * 24 * 60 * minute), UsageWindow(WindowKind.FREE_DAILY, 24.0, now + 12 * 60 * minute)),
+                spend = Spend(SpendKind.KEY_TOTAL, used = Money(18.0, "USD"), balance = Money(32.0, "USD")),
+            ),
+            UsageSnapshot(
+                provider = Provider.OPENCODE,
+                fetchedAtMs = now - minute,
+                plan = "Go",
+                windows = listOf(UsageWindow(WindowKind.SESSION, 25.0, now + 120 * minute), UsageWindow(WindowKind.WEEKLY, 50.0, now + 4 * 24 * 60 * minute), UsageWindow(WindowKind.MONTHLY, 75.0, now + 10 * 24 * 60 * minute)),
+                spend = Spend(SpendKind.CREDITS, balance = Money(12.5, "USD")),
             ),
         ).associateBy { it.provider }
     }

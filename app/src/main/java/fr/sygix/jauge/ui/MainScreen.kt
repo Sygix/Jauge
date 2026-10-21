@@ -71,6 +71,8 @@ import fr.sygix.jauge.store.TextTone
 import fr.sygix.jauge.widget.ClaudeWidgetReceiver
 import fr.sygix.jauge.widget.CodexWidgetReceiver
 import fr.sygix.jauge.widget.NousWidgetReceiver
+import fr.sygix.jauge.widget.OpenRouterWidgetReceiver
+import fr.sygix.jauge.widget.OpenCodeWidgetReceiver
 import fr.sygix.jauge.widget.OverviewWidgetReceiver
 import fr.sygix.jauge.widget.Palette
 import kotlinx.coroutines.delay
@@ -113,11 +115,12 @@ fun MainScreen(viewModel: MainViewModel) {
                     refreshing = item.provider in ui.refreshing,
                     onConnect = {
                         when (item.provider) {
-                            Provider.NOUS -> viewModel.startDeviceLogin(Provider.NOUS)
+                            Provider.NOUS, Provider.OPENCODE -> viewModel.startDeviceLogin(item.provider)
                             else -> viewModel.startBrowserLogin(item.provider)?.let { Links.open(context, it, item.provider.accent) }
                         }
                     },
                     onDeviceCode = { viewModel.startDeviceLogin(item.provider) },
+                    onApiKey = { viewModel.startApiKeyLogin(item.provider) },
                     onRefresh = { viewModel.refresh(item.provider) },
                     onDisconnect = { viewModel.disconnect(item.provider) },
                 )
@@ -140,7 +143,8 @@ fun MainScreen(viewModel: MainViewModel) {
         onOpen = { url, provider -> Links.open(context, url, provider.accent) },
         onManual = { Links.open(context, viewModel.startManualClaude(), Provider.CLAUDE.accent) },
         onSubmitCode = viewModel::submitManualCode,
-        onRetry = { provider -> viewModel.acknowledgeLogin(); if (provider == Provider.NOUS) viewModel.startDeviceLogin(provider) else viewModel.startBrowserLogin(provider)?.let { Links.open(context, it, provider.accent) } },
+        onSubmitApiKey = viewModel::submitApiKey,
+        onRetry = { provider -> viewModel.acknowledgeLogin(); if (provider == Provider.NOUS || provider == Provider.OPENCODE) viewModel.startDeviceLogin(provider) else viewModel.startBrowserLogin(provider)?.let { Links.open(context, it, provider.accent) } },
         onCancel = viewModel::cancelLogin,
         onDismiss = viewModel::acknowledgeLogin,
     )
@@ -158,6 +162,7 @@ private fun rememberNow(): Long {
     return state.longValue
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProviderCard(
     item: ProviderUi,
@@ -166,6 +171,7 @@ private fun ProviderCard(
     refreshing: Boolean,
     onConnect: () -> Unit,
     onDeviceCode: () -> Unit,
+    onApiKey: () -> Unit,
     onRefresh: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
@@ -198,9 +204,10 @@ private fun ProviderCard(
                 Spacer(Modifier.height(12.dp))
                 Text(description(context, provider), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onConnect) { Text(stringResource(if (provider == Provider.NOUS) R.string.connect_device else R.string.connect)) }
                     if (provider == Provider.CODEX) OutlinedButton(onClick = onDeviceCode) { Text(stringResource(R.string.device_code)) }
+                    if (provider == Provider.OPENROUTER || provider == Provider.OPENCODE) OutlinedButton(onClick = onApiKey) { Text(stringResource(R.string.api_key)) }
                 }
                 return@Column
             }
@@ -222,8 +229,13 @@ private fun ProviderCard(
                 if (!spend.enabled) Text(stringResource(R.string.disabled), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 spend.balance?.takeIf { spend.used != null }?.let {
                     Spacer(Modifier.height(4.dp))
-                    Text(stringResource(R.string.top_up_balance, Format.money(context, it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(if (provider == Provider.OPENROUTER || provider == Provider.OPENCODE) R.string.account_balance else R.string.top_up_balance, Format.money(context, it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+
+            if (snapshot?.quotaUnavailable == true) {
+                Spacer(Modifier.height(12.dp))
+                Text(stringResource(R.string.quota_unavailable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Spacer(Modifier.height(14.dp))
@@ -239,10 +251,11 @@ private fun ProviderCard(
                 color = if (snapshot?.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (snapshot?.needsLogin == true) Button(onClick = onConnect) { Text(stringResource(R.string.reconnect)) }
                 else OutlinedButton(onClick = onRefresh, enabled = !refreshing) { Text(stringResource(R.string.refresh)) }
                 TextButton(onClick = onDisconnect) { Text(stringResource(R.string.disconnect)) }
+                if (snapshot?.needsLogin == true && (provider == Provider.OPENROUTER || provider == Provider.OPENCODE)) TextButton(onClick = onApiKey) { Text(stringResource(R.string.api_key)) }
             }
         }
     }
@@ -261,6 +274,10 @@ private fun WindowLine(provider: Provider, window: UsageWindow, nowMs: Long, sho
         )
     }
     Spacer(Modifier.height(6.dp))
+    if (window.usedRequests != null && window.requestLimit != null) {
+        Text(stringResource(R.string.request_count, window.usedRequests, window.requestLimit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+    }
     Gauge((shown / 100).toFloat(), Color(Palette.forUsage(provider, window.usedPercent)), 8)
     val countdown = Format.countdown(context, window.resetsAtMs, nowMs)
     if (countdown != null) {
@@ -291,6 +308,8 @@ private fun description(context: Context, provider: Provider): String = context.
         Provider.CLAUDE -> R.string.describe_claude
         Provider.CODEX -> R.string.describe_codex
         Provider.NOUS -> R.string.describe_nous
+        Provider.OPENROUTER -> R.string.describe_openrouter
+        Provider.OPENCODE -> R.string.describe_opencode
     },
 )
 
@@ -318,6 +337,8 @@ private fun WidgetsCard() {
                     "Claude" to ClaudeWidgetReceiver::class.java,
                     "Codex" to CodexWidgetReceiver::class.java,
                     "Nous" to NousWidgetReceiver::class.java,
+                    Provider.OPENROUTER.shortName to OpenRouterWidgetReceiver::class.java,
+                    Provider.OPENCODE.shortName to OpenCodeWidgetReceiver::class.java,
                 ).forEach { (label, receiver) ->
                     OutlinedButton(onClick = { Links.pinWidget(context, receiver) }) { Text(label) }
                 }

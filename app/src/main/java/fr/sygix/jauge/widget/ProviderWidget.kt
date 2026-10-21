@@ -35,10 +35,12 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import fr.sygix.jauge.graph
+import fr.sygix.jauge.R
 import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.model.WindowKind
 import fr.sygix.jauge.ui.Format
 import fr.sygix.jauge.ui.MainActivity
+import fr.sygix.jauge.ui.Texts
 import kotlinx.coroutines.flow.first
 
 abstract class ProviderWidget(private val provider: Provider) : GlanceAppWidget() {
@@ -83,13 +85,38 @@ internal fun ProviderContent(model: WidgetModel) {
     ) {
         val inner = DpSize(size.width - padding * 2, size.height - padding * 2)
         when {
-            model.snapshot == null || model.snapshot.windows.isEmpty() && model.snapshot.error == null ->
+            model.snapshot == null || model.snapshot.windows.isEmpty() && model.snapshot.spend == null && model.snapshot.error == null ->
                 Placeholder(model, small = size.width < 110.dp)
+            model.snapshot.windows.isEmpty() && model.snapshot.spend != null -> BalanceContent(model, inner)
             size.height < 100.dp && size.width < 100.dp -> Tiny(model, inner)
             size.height < 100.dp && size.width < 180.dp -> Compact(model, inner)
             size.height < 100.dp -> Strip(model, inner)
             size.width < 180.dp -> Square(model, inner)
             else -> Panel(model, inner)
+        }
+    }
+}
+
+@Composable
+private fun BalanceContent(model: WidgetModel, inner: DpSize) {
+    val spend = model.snapshot?.spend ?: return
+    val compact = inner.height < 76.dp || inner.width < 100.dp
+    Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
+        if (!compact) {
+            Header(model, inner.width)
+            Spacer(GlanceModifier.defaultWeight())
+        } else if (inner.height >= 40.dp) {
+            Label(model.provider.shortName, size = 10.sp, bold = true, muted = false)
+            Spacer(GlanceModifier.height(3.dp))
+        }
+        Label(Format.spend(model.context, spend), size = if (compact) 12.sp else 18.sp, bold = true, muted = false)
+        if (!compact) {
+            Label(Texts.spend(model.context, spend.kind), size = 11.sp)
+            spend.balance?.takeIf { spend.used != null }?.let {
+                Spacer(GlanceModifier.height(6.dp))
+                Label(model.string(R.string.account_balance, Format.money(model.context, it)), size = 10.sp)
+            }
+            Spacer(GlanceModifier.defaultWeight())
         }
     }
 }
@@ -102,7 +129,7 @@ private fun Tiny(model: WidgetModel, inner: DpSize) {
 @Composable
 private fun Compact(model: WidgetModel, inner: DpSize) {
     val snapshot = model.snapshot ?: return
-    val ring = minOf(inner.height, 72.dp)
+    val ring = minOf(inner.height, 72.dp, (inner.width - 82.dp).coerceAtLeast(28.dp))
     Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
         RingGauge(model, ring, showCaption = false)
         Spacer(GlanceModifier.width(10.dp))
@@ -113,10 +140,10 @@ private fun Compact(model: WidgetModel, inner: DpSize) {
                 Label(model.provider.shortName, size = 11.sp, bold = true, muted = false)
             }
             snapshot.primary?.let {
-                Label(model.label(it), size = 10.sp)
-                model.resetIn(it)?.let { reset -> Label(reset, size = 10.sp) }
+                if (inner.height >= 62.dp) Label(model.label(it), size = 10.sp)
+                if (inner.height >= 46.dp) model.resetIn(it)?.let { reset -> Label(reset, size = 10.sp) }
             }
-            snapshot.secondary?.let { Label(model.short(it), size = 10.sp, bold = true, muted = false) }
+            if (inner.height >= 32.dp) snapshot.secondary?.let { Label(model.short(it), size = 10.sp, bold = true, muted = false) }
         }
     }
 }
@@ -141,7 +168,7 @@ private fun Strip(model: WidgetModel, inner: DpSize) {
                 }
                 Spacer(GlanceModifier.height(4.dp))
             }
-            val windows = listOfNotNull(snapshot.primary, snapshot.secondary)
+            val windows = listOfNotNull(snapshot.primary, snapshot.secondary).take(if (inner.height >= 50.dp) 2 else 1)
             windows.forEachIndexed { index, window ->
                 if (index > 0) Spacer(GlanceModifier.height(5.dp))
                 WindowRow(model, window, barWidth, compact = true)
@@ -214,6 +241,8 @@ private fun Panel(model: WidgetModel, inner: DpSize) {
 class ClaudeWidget : ProviderWidget(Provider.CLAUDE)
 class CodexWidget : ProviderWidget(Provider.CODEX)
 class NousWidget : ProviderWidget(Provider.NOUS)
+class OpenRouterWidget : ProviderWidget(Provider.OPENROUTER)
+class OpenCodeWidget : ProviderWidget(Provider.OPENCODE)
 
 class ClaudeWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ClaudeWidget()
@@ -225,4 +254,12 @@ class CodexWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class NousWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = NousWidget()
+}
+
+class OpenRouterWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = OpenRouterWidget()
+}
+
+class OpenCodeWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = OpenCodeWidget()
 }
