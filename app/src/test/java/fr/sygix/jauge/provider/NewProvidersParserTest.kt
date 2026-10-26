@@ -38,8 +38,8 @@ class NewProvidersParserTest {
         val snapshot = OpenRouterParser.parse(json("""{"data":{"usage":12.5,"limit":null,"limit_remaining":null}}"""), json("""{"data":{"total_credits":40,"total_usage":15}}"""), now)
         assertTrue(snapshot.windows.isEmpty())
         assertEquals(12.5, snapshot.spend!!.used!!.amount, 0.001)
-        assertEquals(25.0, snapshot.spend!!.balance!!.amount, 0.001)
-        assertNull(snapshot.spend!!.percent)
+        assertEquals(25.0, snapshot.spend.balance!!.amount, 0.001)
+        assertNull(snapshot.spend.percent)
     }
 
     @Test
@@ -126,8 +126,8 @@ class NewProvidersParserTest {
         val snapshot = OpenCodeParser.parseConsole(null, json("""{"mode":"pay-as-you-go","balanceMicroCents":"-100000000"}"""), json("""{"totalCostMicroCents":"4200000000"}"""), now)
         assertTrue(snapshot.windows.isEmpty())
         assertEquals(42.0, snapshot.spend!!.used!!.amount, 0.001)
-        assertEquals(-1.0, snapshot.spend!!.balance!!.amount, 0.001)
-        assertNull(snapshot.spend!!.percent)
+        assertEquals(-1.0, snapshot.spend.balance!!.amount, 0.001)
+        assertNull(snapshot.spend.percent)
         assertTrue(snapshot.quotaUnavailable)
         assertEquals("Zen", snapshot.plan)
     }

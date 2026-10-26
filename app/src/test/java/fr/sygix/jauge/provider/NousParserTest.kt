@@ -32,10 +32,10 @@ class NousParserTest {
         assertEquals("Pro", snapshot.plan)
         assertEquals("n@r.ai", snapshot.account)
         assertEquals(SpendKind.PERIOD, snapshot.spend!!.kind)
-        assertEquals(15.0, snapshot.spend!!.used!!.amount, 0.001)
-        assertEquals(20.0, snapshot.spend!!.limit!!.amount, 0.001)
-        assertEquals(75.0, snapshot.spend!!.percent!!, 0.001)
-        assertEquals(3.25, snapshot.spend!!.balance!!.amount, 0.001)
+        assertEquals(15.0, snapshot.spend.used!!.amount, 0.001)
+        assertEquals(20.0, snapshot.spend.limit!!.amount, 0.001)
+        assertEquals(75.0, snapshot.spend.percent!!, 0.001)
+        assertEquals(3.25, snapshot.spend.balance!!.amount, 0.001)
         assertNull(snapshot.error)
     }
 

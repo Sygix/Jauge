@@ -52,7 +52,7 @@ class ClaudeParserTest {
         assertNotNull(spend)
         assertEquals(12.34, spend!!.used!!.amount, 0.001)
         assertEquals(700.0, spend.limit!!.amount, 0.001)
-        assertEquals("EUR", spend.limit!!.currency)
+        assertEquals("EUR", spend.limit.currency)
         assertTrue(spend.enabled)
     }
 
@@ -69,7 +69,7 @@ class ClaudeParserTest {
         assertEquals(30.5, snapshot.session!!.usedPercent, 0.001)
         assertEquals("Sonnet", snapshot.windows[2].model)
         assertEquals(50.0, snapshot.spend!!.limit!!.amount, 0.001)
-        assertFalse(snapshot.spend!!.enabled)
+        assertFalse(snapshot.spend.enabled)
     }
 
     @Test
