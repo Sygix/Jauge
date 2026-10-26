@@ -94,8 +94,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val previous = graph.store.settings.first()
             graph.store.updateSettings(transform)
-            val settings = graph.store.settings.first()
-            RefreshScheduler.restart(getApplication(), previous, settings)
+            RefreshScheduler.restart(getApplication(), previous)
             JaugeWidgets.updateAll(getApplication())
         }
     }

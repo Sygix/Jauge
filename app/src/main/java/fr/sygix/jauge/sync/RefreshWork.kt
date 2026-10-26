@@ -37,7 +37,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 val settings = graph.store.settings.first()
                 if (settings.refreshMinutes(provider) == null || provider !in graph.store.connected.first()) return Result.success()
                 graph.sync.sync(provider)
-                RefreshScheduler.enqueueLoop(applicationContext, graph.store.settings.first(), provider, ExistingWorkPolicy.APPEND_OR_REPLACE).await()
+                RefreshScheduler.enqueueNext(applicationContext, provider)
             } else {
                 graph.sync.syncAll()
             }
@@ -66,11 +66,11 @@ object RefreshScheduler {
     private const val LOOP = "jauge-refresh-loop"
     private const val NOW = "jauge-refresh-now"
     private const val RECOVERY = "jauge-refresh-recovery"
+    private val reconciler = RefreshReconciler()
 
-    suspend fun ensure(context: Context) {
-        val graph = context.graph
-        val settings = graph.store.settings.first()
-        val connected = graph.store.connected.first()
+    private suspend fun state(context: Context) = RefreshState(context.graph.store.settings.first(), context.graph.store.connected.first())
+
+    suspend fun ensure(context: Context) = reconciler.run({ state(context) }) { (settings, connected) ->
         WorkManager.getInstance(context).cancelUniqueWork(LOOP).await()
         enqueueRecovery(context, settings).await()
         Provider.entries.forEach { provider ->
@@ -79,14 +79,18 @@ object RefreshScheduler {
         }
     }
 
-    suspend fun restart(context: Context, previous: Settings, settings: Settings) {
-        val connected = context.graph.store.connected.first()
+    suspend fun restart(context: Context, previous: Settings) = reconciler.run({ state(context) }) { (settings, connected) ->
         enqueueRecovery(context, settings).await()
         connected.forEach { provider ->
             if (previous.refreshMinutes(provider) != settings.refreshMinutes(provider) || previous.wifiOnly != settings.wifiOnly) {
                 enqueueLoop(context, settings, provider, ExistingWorkPolicy.REPLACE).await()
             }
         }
+    }
+
+    internal suspend fun enqueueNext(context: Context, provider: Provider) = reconciler.run({ state(context) }) { (settings, connected) ->
+        if (provider in connected) enqueueLoop(context, settings, provider, ExistingWorkPolicy.APPEND_OR_REPLACE).await()
+        else WorkManager.getInstance(context).cancelUniqueWork(loopName(provider)).await()
     }
 
     fun refreshNow(context: Context) {
@@ -109,7 +113,7 @@ object RefreshScheduler {
             .build()
     }
 
-    internal fun enqueueLoop(context: Context, settings: Settings, provider: Provider, policy: ExistingWorkPolicy): Operation {
+    private fun enqueueLoop(context: Context, settings: Settings, provider: Provider, policy: ExistingWorkPolicy): Operation {
         val manager = WorkManager.getInstance(context)
         val request = loopRequest(settings, provider) ?: return manager.cancelUniqueWork(loopName(provider))
         return manager.enqueueUniqueWork(loopName(provider), policy, request)
