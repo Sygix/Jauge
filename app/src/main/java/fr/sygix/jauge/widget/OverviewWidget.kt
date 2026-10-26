@@ -141,10 +141,9 @@ private fun RingStrip(models: List<WidgetModel>, inner: DpSize) {
                     Column(modifier = GlanceModifier.width(textWidth)) {
                         Label(model.provider.shortName, size = 11.sp, bold = true, muted = false)
                         val primary = model.snapshot?.primary
-                        val reset = primary?.let { model.resetIn(it) }
                         when {
                             model.snapshot?.needsLogin == true -> Label(model.string(R.string.widget_relogin), size = 10.sp, color = LocalWidgetColors.current.error)
-                            reset != null -> Label(reset, size = 10.sp)
+                            primary != null -> ResetCountdown(model, primary)
                         }
                         if (lines >= 3) model.snapshot?.secondary?.let { Label(model.short(it), size = 10.sp) }
                     }
@@ -244,13 +243,17 @@ private fun ProviderLine(model: WidgetModel, width: Dp, detail: Boolean) {
             Bar(model.shown(primary) / 100, model.color(primary), width, 5.dp)
         }
         if (detail) {
-            val parts = listOfNotNull(
-                primary?.let { model.resetIn(it) },
-                snapshot?.secondary?.let { model.short(it) },
-            )
-            if (parts.isNotEmpty()) {
+            val hasReset = primary?.let { model.countdown(it) } != null
+            val secondary = snapshot?.secondary
+            if (hasReset || secondary != null) {
                 Spacer(GlanceModifier.height(2.dp))
-                Label(parts.joinToString(" · "), size = 10.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (hasReset) ResetCountdown(model, primary)
+                    if (secondary != null) {
+                        if (hasReset) Label(" · ", size = 10.sp)
+                        Label(model.short(secondary), size = 10.sp)
+                    }
+                }
             }
         }
     }
@@ -270,7 +273,7 @@ private fun ProviderBlock(model: WidgetModel, width: Dp, spend: Boolean) {
             Label(snapshot?.plan.orEmpty(), size = 10.sp, modifier = GlanceModifier.defaultWeight())
             when {
                 snapshot?.needsLogin == true -> Label(model.string(R.string.widget_relogin_long), size = 10.sp, color = LocalWidgetColors.current.error)
-                snapshot?.error != null -> Label("⚠", size = 10.sp, color = LocalWidgetColors.current.error)
+                snapshot?.error != null -> RefreshWarning()
             }
         }
         Spacer(GlanceModifier.height(4.dp))

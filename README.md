@@ -63,7 +63,7 @@ Jauge is not affiliated with Anthropic, OpenAI, Nous Research, OpenRouter or Ope
 
 ## Refresh
 
-WorkManager reads usage again at the interval you choose. Android may delay these runs in battery saver or Doze. A separate periodic recovery task restores background scheduling if the refresh chain stops. The ↻ button on widgets and opening the app request an immediate refresh; ⌛ marks the countdown to a quota reset. If a refresh fails, the widget keeps the last values and shows ⚠.
+WorkManager reads usage again at the interval you choose. Android may delay these runs in battery saver or Doze. A separate periodic recovery task restores background scheduling if the refresh chain stops. The refresh button on widgets and opening the app request an immediate refresh; a Material Symbols Rounded hourglass marks the countdown to a quota reset. If a refresh fails, the widget keeps the last values and shows a Material warning icon.
 
 ## Development
 

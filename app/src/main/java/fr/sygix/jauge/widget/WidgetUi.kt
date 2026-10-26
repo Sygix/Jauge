@@ -31,6 +31,8 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -59,8 +61,6 @@ data class WidgetModel(
     fun pct(window: UsageWindow): String = Format.percentShort(context, shown(window))
 
     fun countdown(window: UsageWindow): String? = Format.countdown(context, window.resetsAtMs, nowMs)
-
-    fun resetIn(window: UsageWindow): String? = countdown(window)?.let { context.getString(R.string.reset_in, it) }
 
     fun label(window: UsageWindow): String = Texts.window(context, window)
 
@@ -140,14 +140,41 @@ fun Label(text: String, size: TextUnit = 11.sp, bold: Boolean = false, muted: Bo
 }
 
 @Composable
+fun ResetCountdown(model: WidgetModel, window: UsageWindow) {
+    val reset = model.countdown(window) ?: return
+    Row(
+        modifier = GlanceModifier.semantics { contentDescription = model.string(R.string.reset_in, reset) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            provider = ImageProvider(R.drawable.ic_hourglass_empty),
+            contentDescription = null,
+            modifier = GlanceModifier.size(12.dp),
+            colorFilter = ColorFilter.tint(LocalWidgetColors.current.muted),
+        )
+        Spacer(GlanceModifier.width(3.dp))
+        Label(reset, size = 10.sp)
+    }
+}
+
+@Composable
+fun RefreshWarning() {
+    Image(
+        provider = ImageProvider(R.drawable.ic_warning),
+        contentDescription = LocalContext.current.getString(R.string.widget_refresh_failed),
+        modifier = GlanceModifier.size(12.dp),
+        colorFilter = ColorFilter.tint(LocalWidgetColors.current.error),
+    )
+}
+
+@Composable
 fun WindowRow(model: WidgetModel, window: UsageWindow, width: Dp, compact: Boolean = false) {
     val color = model.color(window)
     Column(modifier = GlanceModifier.width(width)) {
         Row(modifier = GlanceModifier.width(width), verticalAlignment = Alignment.CenterVertically) {
             Label(model.label(window), size = if (compact) 10.sp else 11.sp, modifier = GlanceModifier.defaultWeight())
-            val reset = model.resetIn(window)
-            if (reset != null && width.value >= 120) {
-                Label(reset, size = 10.sp)
+            if (model.countdown(window) != null && width.value >= 120) {
+                ResetCountdown(model, window)
                 Spacer(GlanceModifier.width(6.dp))
             }
             Label(model.pct(window), size = if (compact) 11.sp else 12.sp, bold = true, muted = false)
@@ -195,10 +222,15 @@ fun StatusText(model: WidgetModel) {
     val snapshot = model.snapshot ?: return
     val text = when {
         snapshot.needsLogin -> model.string(R.string.widget_relogin_long)
-        snapshot.error != null -> "⚠ " + Format.updated(model.context, snapshot.fetchedAtMs, model.nowMs)
         else -> Format.updated(model.context, snapshot.fetchedAtMs, model.nowMs)
     }
-    Label(text, size = 10.sp, color = if (snapshot.error != null) LocalWidgetColors.current.error else null)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (snapshot.error != null && !snapshot.needsLogin) {
+            RefreshWarning()
+            Spacer(GlanceModifier.width(3.dp))
+        }
+        Label(text, size = 10.sp, color = if (snapshot.error != null) LocalWidgetColors.current.error else null)
+    }
 }
 
 @Composable

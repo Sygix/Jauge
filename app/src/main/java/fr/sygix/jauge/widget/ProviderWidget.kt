@@ -141,7 +141,7 @@ private fun Compact(model: WidgetModel, inner: DpSize) {
             }
             snapshot.primary?.let {
                 if (inner.height >= 62.dp) Label(model.label(it), size = 10.sp)
-                if (inner.height >= 46.dp) model.resetIn(it)?.let { reset -> Label(reset, size = 10.sp) }
+                if (inner.height >= 46.dp) ResetCountdown(model, it)
             }
             if (inner.height >= 32.dp) snapshot.secondary?.let { Label(model.short(it), size = 10.sp, bold = true, muted = false) }
         }
@@ -194,10 +194,13 @@ private fun Square(model: WidgetModel, inner: DpSize) {
         RingGauge(model, ring)
         Spacer(GlanceModifier.defaultWeight())
         footer?.let {
-            Label(
-                model.short(it) + (model.resetIn(it)?.let { reset -> " · $reset" } ?: ""),
-                size = 10.sp,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Label(model.short(it), size = 10.sp)
+                if (model.countdown(it) != null) {
+                    Label(" · ", size = 10.sp)
+                    ResetCountdown(model, it)
+                }
+            }
         }
     }
 }
