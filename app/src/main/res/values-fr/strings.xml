@@ -59,7 +59,7 @@
     <string name="widget_tap_connect_all">Touchez pour connecter vos comptes</string>
     <string name="widget_refreshing">Actualisation…</string>
     <string name="widget_refresh">Actualiser</string>
-    <string name="reset_in">↻ %1$s</string>
+    <string name="reset_in">⌛ %1$s</string>
 
     <string name="success_title">%1$s est connecté</string>
     <string name="success_body">Vous pouvez revenir dans Jauge, vos widgets vont se mettre à jour.</string>
