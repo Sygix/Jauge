@@ -18,7 +18,7 @@ Pull requests are reserved for the repository collaborators. Pull requests from 
 
 ## Translations
 
-The app ships in English and French. Strings live in `app/src/main/res/values/strings.xml` (English) and `app/src/main/res/values-fr/strings.xml` (French). To suggest a new language, open a feature request.
+The app ships in English, French, German, Spanish and Italian. It follows the system language and falls back to English when no supported language matches, with no in-app language selector. Strings live in `app/src/main/res/values/strings.xml` (English fallback) and the corresponding `values-fr`, `values-de`, `values-es` and `values-it` directories. To suggest a new language, open a feature request.
 
 ## License
 

@@ -60,6 +60,9 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        localeFilters += listOf("en", "fr", "de", "es", "it")
+    }
     testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 

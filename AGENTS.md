@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Overview
-Jauge: Android home screen widgets (Glance) tracking Claude, ChatGPT Codex and Nous Portal usage. Owner: Sygix. UI languages: English (default) and French.
+Jauge: Android home screen widgets (Glance) tracking Claude, ChatGPT Codex and Nous Portal usage. Owner: Sygix. UI languages: English (fallback), French, German, Spanish and Italian; follows the system language.
 
 ## Code conventions
 - Kotlin, Compose for the app, Glance for widgets; minSdk 31
@@ -13,7 +13,7 @@ Jauge: Android home screen widgets (Glance) tracking Claude, ChatGPT Codex and N
    * SPDX-License-Identifier: AGPL-3.0-or-later
    */
   ```
-- No user-facing text in Kotlin: strings go to `values/strings.xml` and `values-fr/strings.xml`; stored data (snapshots, errors) stays language-neutral (enums, codes)
+- No user-facing text in Kotlin: strings go to `values/strings.xml` (English fallback) and `values-{fr,de,es,it}/strings.xml`; stored data (snapshots, errors) stays language-neutral (enums, codes)
 - Widget classes must stay distinct after R8 (`-keep` rule in `proguard-rules.pro`): Glance finds widgets by class name
 - Any widget layout change: run `./gradlew testDebugUnitTest` and check `app/build/widget-previews/*-matrix.png` for clipped content
 

@@ -11,7 +11,7 @@ Android home screen widgets to keep an eye on your AI subscriptions and credits:
 - Transparent widgets that sit on your wallpaper, with light, dark or automatic text (or a Material You background if you prefer)
 - Gauges turn orange at 75 % and red at 90 %
 - Configurable background refresh (5 min to 4 h), optional Wi‑Fi only
-- English and French
+- English, French, German, Spanish and Italian; follows the system language with English as the fallback
 
 Requires Android 12 (API 31) or later.
 
