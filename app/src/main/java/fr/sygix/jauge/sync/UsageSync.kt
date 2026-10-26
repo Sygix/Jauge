@@ -31,8 +31,9 @@ class UsageSync(
 ) {
     private val locks = Provider.entries.associateWith { Mutex() }
 
-    suspend fun syncAll() {
-        val providers = store.connected.first()
+    suspend fun syncAll(automatic: Boolean = false) {
+        val settings = store.settings.first()
+        val providers = store.connected.first().filter { !automatic || settings.refreshMinutes(it) != null }
         coroutineScope { providers.map { async { syncProvider(it) } }.awaitAll() }
         onUpdated()
     }

@@ -10,7 +10,7 @@ Android home screen widgets to keep an eye on your AI subscriptions and credits:
 - Resizable widgets from 1×1 to 4×3, the layout adapts to the space you give it
 - Transparent widgets that sit on your wallpaper, with light, dark or automatic text (or a Material You background if you prefer)
 - Gauges turn orange at 75 % and red at 90 %
-- Configurable background refresh (5 min to 4 h), optional Wi‑Fi only
+- Default background refresh interval (5 min to 4 h), per-provider overrides or manual-only mode, optional Wi‑Fi only
 - English, French, German, Spanish and Italian; follows the system language with English as the fallback
 
 Requires Android 12 (API 31) or later.
@@ -63,7 +63,7 @@ Jauge is not affiliated with Anthropic, OpenAI, Nous Research, OpenRouter or Ope
 
 ## Refresh
 
-WorkManager reads usage again at the interval you choose. Android may delay these runs in battery saver or Doze. A separate periodic recovery task restores background scheduling if the refresh chain stops. The refresh button on widgets and opening the app request an immediate refresh; a Material Symbols Rounded hourglass marks the countdown to a quota reset. If a refresh fails, the widget keeps the last values and shows a Material warning icon.
+WorkManager reads usage again at the default interval you choose. Each provider can inherit that interval, use its own interval, or disable automatic refresh entirely. Providers run on independent schedules. Android may delay these runs in battery saver or Doze. A separate periodic recovery task restores background scheduling if a refresh chain stops. Opening the app refreshes providers with automatic refresh enabled. Manual refresh buttons in the app and widgets always remain available, including for providers with automatic refresh disabled. A Material Symbols Rounded hourglass marks the countdown to a quota reset. If a refresh fails, the widget keeps the last values and shows a Material warning icon.
 
 ## Development
 

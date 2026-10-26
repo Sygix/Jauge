@@ -16,7 +16,7 @@ import javax.crypto.spec.GCMParameterSpec
 
 class SecureBox(private val alias: String = "jauge-credentials") {
 
-    private val keyStore: KeyStore = KeyStore.getInstance(PROVIDER).apply { load(null) }
+    private val keyStore: KeyStore by lazy { KeyStore.getInstance(PROVIDER).apply { load(null) } }
 
     fun encrypt(plain: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)

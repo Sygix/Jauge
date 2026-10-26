@@ -51,13 +51,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainUi())
 
-    fun refresh(provider: Provider? = null) {
-        val targets = provider?.let { setOf(it) } ?: ui.value.providers.filter { it.connected }.map { it.provider }.toSet()
-        if (targets.isEmpty()) return
-        refreshing.value = refreshing.value + targets
+    fun refresh(provider: Provider? = null, automatic: Boolean = false) {
         viewModelScope.launch {
+            val settings = graph.store.settings.first()
+            val targets = (provider?.let { setOf(it) } ?: graph.store.connected.first())
+                .filter { !automatic || settings.refreshMinutes(it) != null }.toSet()
+            if (targets.isEmpty()) return@launch
+            refreshing.value = refreshing.value + targets
             try {
-                if (provider == null) graph.sync.syncAll() else graph.sync.sync(provider)
+                if (provider == null) graph.sync.syncAll(automatic) else graph.sync.sync(provider)
             } finally {
                 refreshing.value = refreshing.value - targets
             }
@@ -67,6 +69,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun disconnect(provider: Provider) {
         viewModelScope.launch {
             graph.store.disconnect(provider)
+            RefreshScheduler.ensure(getApplication())
             JaugeWidgets.updateAll(getApplication())
         }
     }
@@ -89,9 +92,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateSettings(transform: (Settings) -> Settings) {
         viewModelScope.launch {
+            val previous = graph.store.settings.first()
             graph.store.updateSettings(transform)
             val settings = graph.store.settings.first()
-            RefreshScheduler.restart(getApplication(), settings)
+            RefreshScheduler.restart(getApplication(), previous, settings)
             JaugeWidgets.updateAll(getApplication())
         }
     }

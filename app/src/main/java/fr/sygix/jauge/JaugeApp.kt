@@ -27,7 +27,10 @@ class AppGraph(context: Context) {
     val sync = UsageSync(
         store = store,
         clients = listOf(ClaudeClient(), CodexClient(), NousClient(), OpenRouterClient(), OpenCodeClient()).associateBy { it.provider },
-        onUpdated = { JaugeWidgets.updateAll(context) },
+        onUpdated = {
+            RefreshScheduler.ensure(context)
+            JaugeWidgets.updateAll(context)
+        },
     )
     val login = LoginBroker(context, sync)
 }

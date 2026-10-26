@@ -31,7 +31,10 @@ data class Settings(
     val wifiOnly: Boolean = false,
     val textTone: TextTone = TextTone.AUTO,
     val widgetBackground: Boolean = false,
+    val providerRefreshMinutes: Map<Provider, Int> = emptyMap(),
 ) {
+    fun refreshMinutes(provider: Provider): Int? = (providerRefreshMinutes[provider] ?: refreshMinutes).takeIf { it > 0 }
+
     companion object {
         const val DEFAULT_REFRESH_MINUTES = 15
         val REFRESH_CHOICES = listOf(5, 10, 15, 30, 60, 120, 240)
@@ -44,21 +47,25 @@ class JaugeStore(context: Context, private val box: SecureBox = SecureBox()) {
 
     private fun credentialsKey(provider: Provider) = stringPreferencesKey("credentials_${provider.name}")
     private fun snapshotKey(provider: Provider) = stringPreferencesKey("snapshot_${provider.name}")
+    private fun providerRefreshKey(provider: Provider) = intPreferencesKey("refresh_minutes_${provider.name}")
     private val refreshKey = intPreferencesKey("refresh_minutes")
     private val remainingKey = booleanPreferencesKey("show_remaining")
     private val wifiKey = booleanPreferencesKey("wifi_only")
     private val toneKey = stringPreferencesKey("text_tone")
     private val backgroundKey = booleanPreferencesKey("widget_background")
 
-    val settings: Flow<Settings> = store.data.map {
-        Settings(
-            refreshMinutes = it[refreshKey] ?: Settings.DEFAULT_REFRESH_MINUTES,
-            showRemaining = it[remainingKey] ?: false,
-            wifiOnly = it[wifiKey] ?: false,
-            textTone = it[toneKey]?.let { name -> TextTone.entries.firstOrNull { tone -> tone.name == name } } ?: TextTone.AUTO,
-            widgetBackground = it[backgroundKey] ?: false,
-        )
-    }
+    private fun settings(prefs: Preferences) = Settings(
+        refreshMinutes = prefs[refreshKey] ?: Settings.DEFAULT_REFRESH_MINUTES,
+        showRemaining = prefs[remainingKey] ?: false,
+        wifiOnly = prefs[wifiKey] ?: false,
+        textTone = prefs[toneKey]?.let { name -> TextTone.entries.firstOrNull { tone -> tone.name == name } } ?: TextTone.AUTO,
+        widgetBackground = prefs[backgroundKey] ?: false,
+        providerRefreshMinutes = Provider.entries.mapNotNull { provider ->
+            prefs[providerRefreshKey(provider)]?.takeIf { it == 0 || it in Settings.REFRESH_CHOICES }?.let { provider to it }
+        }.toMap(),
+    )
+
+    val settings: Flow<Settings> = store.data.map(::settings)
 
     val snapshots: Flow<Map<Provider, UsageSnapshot>> = store.data.map { prefs ->
         Provider.entries.mapNotNull { provider ->
@@ -95,13 +102,17 @@ class JaugeStore(context: Context, private val box: SecureBox = SecureBox()) {
     }
 
     suspend fun updateSettings(transform: (Settings) -> Settings) {
-        val next = transform(settings.first())
         store.edit {
+            val next = transform(settings(it))
             it[refreshKey] = next.refreshMinutes
             it[remainingKey] = next.showRemaining
             it[wifiKey] = next.wifiOnly
             it[toneKey] = next.textTone.name
             it[backgroundKey] = next.widgetBackground
+            Provider.entries.forEach { provider ->
+                val minutes = next.providerRefreshMinutes[provider]
+                if (minutes == null) it.remove(providerRefreshKey(provider)) else it[providerRefreshKey(provider)] = minutes
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.Operation
 import androidx.work.OutOfQuotaPolicy
@@ -20,6 +21,7 @@ import androidx.work.WorkerParameters
 import androidx.work.await
 import androidx.work.workDataOf
 import fr.sygix.jauge.graph
+import fr.sygix.jauge.model.Provider
 import fr.sygix.jauge.store.Settings
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
@@ -29,9 +31,15 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result {
         return try {
             val graph = applicationContext.graph
-            graph.sync.syncAll()
             if (inputData.getBoolean(KEY_LOOP, false)) {
-                RefreshScheduler.enqueueLoop(applicationContext, graph.store.settings.first(), ExistingWorkPolicy.APPEND_OR_REPLACE, delayed = true).await()
+                val provider = Provider.entries.firstOrNull { it.name == inputData.getString(KEY_PROVIDER) }
+                    ?: return Result.success()
+                val settings = graph.store.settings.first()
+                if (settings.refreshMinutes(provider) == null || provider !in graph.store.connected.first()) return Result.success()
+                graph.sync.sync(provider)
+                RefreshScheduler.enqueueLoop(applicationContext, graph.store.settings.first(), provider, ExistingWorkPolicy.APPEND_OR_REPLACE).await()
+            } else {
+                graph.sync.syncAll()
             }
             Result.success()
         } catch (e: CancellationException) {
@@ -43,12 +51,13 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     companion object {
         const val KEY_LOOP = "loop"
+        const val KEY_PROVIDER = "provider"
     }
 }
 
 class RefreshRecoveryWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        RefreshScheduler.enqueueLoop(applicationContext, applicationContext.graph.store.settings.first(), ExistingWorkPolicy.KEEP, delayed = false).await()
+        RefreshScheduler.ensure(applicationContext)
         return Result.success()
     }
 }
@@ -59,14 +68,25 @@ object RefreshScheduler {
     private const val RECOVERY = "jauge-refresh-recovery"
 
     suspend fun ensure(context: Context) {
-        val settings = context.graph.store.settings.first()
+        val graph = context.graph
+        val settings = graph.store.settings.first()
+        val connected = graph.store.connected.first()
+        WorkManager.getInstance(context).cancelUniqueWork(LOOP).await()
         enqueueRecovery(context, settings).await()
-        enqueueLoop(context, settings, ExistingWorkPolicy.KEEP, delayed = true).await()
+        Provider.entries.forEach { provider ->
+            if (provider in connected) enqueueLoop(context, settings, provider, ExistingWorkPolicy.KEEP).await()
+            else WorkManager.getInstance(context).cancelUniqueWork(loopName(provider)).await()
+        }
     }
 
-    fun restart(context: Context, settings: Settings) {
-        enqueueRecovery(context, settings)
-        enqueueLoop(context, settings, ExistingWorkPolicy.REPLACE, delayed = false)
+    suspend fun restart(context: Context, previous: Settings, settings: Settings) {
+        val connected = context.graph.store.connected.first()
+        enqueueRecovery(context, settings).await()
+        connected.forEach { provider ->
+            if (previous.refreshMinutes(provider) != settings.refreshMinutes(provider) || previous.wifiOnly != settings.wifiOnly) {
+                enqueueLoop(context, settings, provider, ExistingWorkPolicy.REPLACE).await()
+            }
+        }
     }
 
     fun refreshNow(context: Context) {
@@ -77,14 +97,22 @@ object RefreshScheduler {
         WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.REPLACE, request)
     }
 
-    internal fun enqueueLoop(context: Context, settings: Settings, policy: ExistingWorkPolicy, delayed: Boolean): Operation {
+    internal fun loopName(provider: Provider) = "$LOOP-${provider.name}"
+
+    internal fun loopRequest(settings: Settings, provider: Provider): OneTimeWorkRequest? {
+        val minutes = settings.refreshMinutes(provider) ?: return null
         val network = if (settings.wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED
-        val request = OneTimeWorkRequestBuilder<RefreshWorker>()
-            .setInitialDelay(if (delayed) settings.refreshMinutes.toLong() else 0L, TimeUnit.MINUTES)
+        return OneTimeWorkRequestBuilder<RefreshWorker>()
+            .setInitialDelay(minutes.toLong(), TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(network).build())
-            .setInputData(workDataOf(RefreshWorker.KEY_LOOP to true))
+            .setInputData(workDataOf(RefreshWorker.KEY_LOOP to true, RefreshWorker.KEY_PROVIDER to provider.name))
             .build()
-        return WorkManager.getInstance(context).enqueueUniqueWork(LOOP, policy, request)
+    }
+
+    internal fun enqueueLoop(context: Context, settings: Settings, provider: Provider, policy: ExistingWorkPolicy): Operation {
+        val manager = WorkManager.getInstance(context)
+        val request = loopRequest(settings, provider) ?: return manager.cancelUniqueWork(loopName(provider))
+        return manager.enqueueUniqueWork(loopName(provider), policy, request)
     }
 
     private fun enqueueRecovery(context: Context, settings: Settings): Operation {

@@ -31,6 +31,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,6 +43,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,7 +55,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -86,7 +93,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val now = rememberNow()
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    LaunchedEffect(Unit) { viewModel.refresh(automatic = true) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
@@ -112,6 +119,8 @@ fun MainScreen(viewModel: MainViewModel) {
                     item = item,
                     nowMs = now,
                     showRemaining = ui.settings.showRemaining,
+                    settings = ui.settings,
+                    onSettingsChange = viewModel::updateSettings,
                     refreshing = item.provider in ui.refreshing,
                     onConnect = {
                         when (item.provider) {
@@ -168,6 +177,8 @@ private fun ProviderCard(
     item: ProviderUi,
     nowMs: Long,
     showRemaining: Boolean,
+    settings: Settings,
+    onSettingsChange: ((Settings) -> Settings) -> Unit,
     refreshing: Boolean,
     onConnect: () -> Unit,
     onDeviceCode: () -> Unit,
@@ -209,6 +220,7 @@ private fun ProviderCard(
                     if (provider == Provider.CODEX) OutlinedButton(onClick = onDeviceCode) { Text(stringResource(R.string.device_code)) }
                     if (provider == Provider.OPENROUTER || provider == Provider.OPENCODE) OutlinedButton(onClick = onApiKey) { Text(stringResource(R.string.api_key)) }
                 }
+                ProviderRefreshSelector(provider, settings, onSettingsChange)
                 return@Column
             }
 
@@ -257,9 +269,56 @@ private fun ProviderCard(
                 TextButton(onClick = onDisconnect) { Text(stringResource(R.string.disconnect)) }
                 if (snapshot?.needsLogin == true && (provider == Provider.OPENROUTER || provider == Provider.OPENCODE)) TextButton(onClick = onApiKey) { Text(stringResource(R.string.api_key)) }
             }
+            ProviderRefreshSelector(provider, settings, onSettingsChange)
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProviderRefreshSelector(provider: Provider, settings: Settings, onChange: ((Settings) -> Settings) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = settings.providerRefreshMinutes[provider]
+    val options = listOf<Int?>(null, 0) + Settings.REFRESH_CHOICES
+    val labels = options.associateWith { minutes ->
+        when (minutes) {
+            null -> stringResource(R.string.refresh_inherit, intervalLabel(settings.refreshMinutes))
+            0 -> stringResource(R.string.refresh_disabled)
+            else -> intervalLabel(minutes)
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = labels.getValue(selected),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.refresh_provider)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text(labels.getValue(minutes)) },
+                    onClick = {
+                        expanded = false
+                        onChange {
+                            it.copy(providerRefreshMinutes = if (minutes == null) it.providerRefreshMinutes - provider else it.providerRefreshMinutes + (provider to minutes))
+                        }
+                    },
+                )
+            }
+        }
+    }
+    if (selected == 0) {
+        Spacer(Modifier.height(4.dp))
+        Text(stringResource(R.string.refresh_manual_only), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun intervalLabel(minutes: Int): String = if (minutes < 60) stringResource(R.string.interval_minutes, minutes) else stringResource(R.string.interval_hours, minutes / 60)
 
 @Composable
 private fun WindowLine(provider: Provider, window: UsageWindow, nowMs: Long, showRemaining: Boolean) {
@@ -365,7 +424,7 @@ private fun SettingsCard(settings: Settings, onChange: ((Settings) -> Settings) 
                     FilterChip(
                         selected = settings.refreshMinutes == minutes,
                         onClick = { onChange { it.copy(refreshMinutes = minutes) } },
-                        label = { Text(if (minutes < 60) stringResource(R.string.interval_minutes, minutes) else stringResource(R.string.interval_hours, minutes / 60)) },
+                        label = { Text(intervalLabel(minutes)) },
                     )
                 }
             }

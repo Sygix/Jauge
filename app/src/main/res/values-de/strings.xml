@@ -88,8 +88,12 @@
     <string name="widgets_title">Widgets</string>
     <string name="widgets_body">Füge ein Widget hinzu und passe seine Größe frei an: Von 1×1 bis 4×3 passt sich das Layout an.</string>
     <string name="widget_pin_overview">Übersicht</string>
-    <string name="refresh_title">Aktualisierung</string>
-    <string name="refresh_body">Wie oft Widgets im Hintergrund aktualisiert werden. Android kann dies im Energiesparmodus verzögern.</string>
+    <string name="refresh_title">Standard-Aktualisierungsintervall</string>
+    <string name="refresh_body">Intervall für die Hintergrundaktualisierung aller Anbieter, sofern nicht einzeln festgelegt. Android kann Aktualisierungen im Energiesparmodus verzögern.</string>
+    <string name="refresh_provider">Automatische Aktualisierung</string>
+    <string name="refresh_inherit">Standard (%1$s)</string>
+    <string name="refresh_disabled">Deaktiviert</string>
+    <string name="refresh_manual_only">Nur manuell aktualisieren, auch beim Öffnen der App.</string>
     <string name="interval_minutes">%1$d Min.</string>
     <string name="interval_hours">%1$d h</string>
     <string name="show_remaining">Verbleibenden Anteil anzeigen</string>

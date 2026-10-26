@@ -89,8 +89,12 @@
     <string name="widgets_title">Widgets</string>
     <string name="widgets_body">Add a widget and resize it freely: from 1×1 to 4×3, the layout adapts.</string>
     <string name="widget_pin_overview">Overview</string>
-    <string name="refresh_title">Refresh</string>
-    <string name="refresh_body">How often widgets update in the background. Android may delay it in battery saver.</string>
+    <string name="refresh_title">Default refresh interval</string>
+    <string name="refresh_body">Background refresh interval for all providers, unless set individually. Android may delay refreshes in battery saver.</string>
+    <string name="refresh_provider">Automatic refresh</string>
+    <string name="refresh_inherit">Default (%1$s)</string>
+    <string name="refresh_disabled">Disabled</string>
+    <string name="refresh_manual_only">Manual refresh only, including when opening the app.</string>
     <string name="interval_minutes">%1$d min</string>
     <string name="interval_hours">%1$d h</string>
     <string name="show_remaining">Show what is left</string>
